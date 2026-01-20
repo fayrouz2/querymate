@@ -26,6 +26,11 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Local databases / data files
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -139,7 +144,10 @@ celerybeat.pid
 .envrc
 .env.example
 .venv
+.venv/
+venv/
 env/
+.env
 venv/
 ENV/
 env.bak/
