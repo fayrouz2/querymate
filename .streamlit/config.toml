@@ -1,0 +1,19 @@
+[theme]
+base="light"
+primaryColor="forestGreen"
+codeBackgroundColor = "blue"
+secondaryBackgroundColor = "lavender"
+textColor = "black"
+font = "sans serif"
+
+[theme.sidebar]
+backgroundColor="ghostWhite"
+secondaryBackgroundColor="lavender"
+
+[server]
+headless = true
+port = 8501
+enableCORS = false
+
+[browser]
+gatherUsageStats = false
