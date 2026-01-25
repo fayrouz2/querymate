@@ -3,7 +3,8 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from .state import VizPlannerState
-from src.agent.prompts import PROMPTS
+from src.agent.prompts import VISUALIZATION_PLANNER_PROMPT
+from src.config import OPENAI_API_KEY
 
 
 def visualization_planner_node(state: VizPlannerState) -> dict:
@@ -16,10 +17,10 @@ def visualization_planner_node(state: VizPlannerState) -> dict:
 
     # 1) Build the LLM (GPT)
     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    llm = ChatOpenAI(model=model_name, temperature=0)
+    llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
 
     # 2) System prompt (your prompt)
-    system = SystemMessage(content=PROMPTS["VISUALIZATION_PLANNER_PROMPT"])
+    system = SystemMessage(content=VISUALIZATION_PLANNER_PROMPT)
 
     # 3) Build a clear user payload from available state fields
     question = state.get("question", "")
@@ -28,7 +29,6 @@ def visualization_planner_node(state: VizPlannerState) -> dict:
     sample_rows = state.get("sample_rows", [])
 
     user_payload = (
-        "You are a visualization planner.\n\n"
         f"User question:\n{question}\n\n"
         f"SQL query (if available):\n{sql_query}\n\n"
         f"Columns (if available):\n{columns}\n\n"
@@ -40,7 +40,7 @@ def visualization_planner_node(state: VizPlannerState) -> dict:
 
     # 4) If there are already messages in the state, keep them
     #    but always include system prompt first.
-    prior_messages = state.get("messages", [])
+    prior_messages = state.get("messages") or []
     messages = [system] + prior_messages + [human]
 
     # 5) Call the model
