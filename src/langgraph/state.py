@@ -12,6 +12,9 @@ class AgentState(TypedDict):
     next_step: str           # routing
     sql_query: str | None
     is_valid: bool | None
+
+
+    
 from typing import Annotated, List, TypedDict
 from langchain_core.messages import BaseMessage
 import operator

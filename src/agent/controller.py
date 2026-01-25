@@ -1,7 +1,7 @@
 # src/agent/controller.py
-from langchain_openai import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain_core.messages import SystemMessage
-from src.agent.prompts import PROMPTS
+from src.agent.prompts import DAILOG_PROMPTS
 from src.config import OPENAI_API_KEY
 
 # Initialize GPT-4
@@ -12,7 +12,7 @@ def run_master_agent(messages):
     This is the Master Agent Logic. It takes chat history and 
     returns the LLM's decision.
     """
-    system_instruction = SystemMessage(content=PROMPTS["controller_system"])
+    system_instruction = SystemMessage(content=DAILOG_PROMPTS["controller_system"])
     
     # GPT-4 decides how to respond based on the conversation history
     response = llm.invoke([system_instruction] + messages)

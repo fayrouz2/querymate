@@ -269,7 +269,7 @@ def format_validator_prompt(sql_query: str) -> str:
 
 
 
-PROMPTS = {
+DAILOG_PROMPTS = {
     "controller_system": """
 You are the QueryMate Master Orchestrator. Your role is to manage the dialog between the user and a team of specialized data agents.
 
