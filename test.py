@@ -31,5 +31,5 @@ def run_terminal_chat():
 
         print(f"\nQueryMate: {clean}")
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     run_terminal_chat()

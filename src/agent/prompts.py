@@ -560,6 +560,20 @@ If visualization is needed:
 
 """
 
+def format_viz_code_prompt(user_question: str, result_metadata: dict):
+    """
+    Format a prompt for the Viz Code Agent.
+
+    :param user_question: original natural language question from the user
+    :param result_metadata: metadata returned from Supabase / SQL execution
+    :return: formatted prompt string
+    """
+
+    return VISUALIZATION_CODE_PROMPT.format(
+        user_question=user_question,
+        result_metadata=result_metadata
+    )
+
 VISUALIZATION_CODE_PROMPT = """
 You are a senior data analyst engineer.
 
@@ -596,6 +610,5 @@ def format_viz_code_prompt(viz_plan: dict, df):
         viz_plan=viz_plan,
         df_preview=df_preview
     )
-
 
 
