@@ -1,10 +1,13 @@
-# from langchain_openai import ChatOpenAI
-# from langchain_core.messages import SystemMessage
 # from src.agent.prompts import PROMPTS
 
+import os
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
 
-# src/langgraph/nodes.py
 from src.agent.controller import run_master_agent
+from src.agent.prompts import VISUALIZATION_PLANNER_PROMPT,  VISUALIZATION_CODE_PROMPT
+from src.config import OPENAI_API_KEY
+from .state import VizPlannerState
 
 def orchestrator_node(state):
     """
@@ -27,14 +30,7 @@ def orchestrator_node(state):
         "next_step": next_step
            }
 
-   
-import os
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
 
-from .state import VizPlannerState
-from src.agent.prompts import VISUALIZATION_PLANNER_PROMPT
-from src.config import OPENAI_API_KEY
 
 
 def visualization_planner_node(state: VizPlannerState) -> dict:
@@ -80,4 +76,32 @@ def visualization_planner_node(state: VizPlannerState) -> dict:
     return {
         "messages": [response],
         "viz_plan": response.content,
+    }
+
+
+
+def visualization_code_generator_node(state):
+    model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
+
+    viz_plan = state.get("viz_plan", "")
+    sample_rows = state.get("sample_rows", [])
+    df_preview = sample_rows[:5] if sample_rows else []
+
+    prompt = VISUALIZATION_CODE_PROMPT.format(
+        viz_plan=viz_plan,
+        df_preview=df_preview
+    )
+
+    system = SystemMessage(content="You generate Python Plotly visualization code only.")
+    human = HumanMessage(content=prompt)
+
+    prior_messages = state.get("messages") or []
+    messages = [system] + prior_messages + [human]
+
+    response = llm.invoke(messages)
+
+    return {
+        "messages": [response],
+        "viz_code": response.content.strip()
     }

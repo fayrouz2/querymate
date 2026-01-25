@@ -1,11 +1,8 @@
-# from typing import Annotated, List, TypedDict
-# from langchain_core.messages import BaseMessage
-# import operator
-
 # src/langgraph/state.py
 from typing import Annotated, List, TypedDict
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
+import operator
 
 class AgentState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
@@ -15,9 +12,6 @@ class AgentState(TypedDict):
 
 
     
-from typing import Annotated, List, TypedDict
-from langchain_core.messages import BaseMessage
-import operator
 
 
 class VizPlannerState(TypedDict, total=False):
@@ -37,3 +31,5 @@ class VizPlannerState(TypedDict, total=False):
 
     # Output of this agent
     viz_plan: str
+
+    viz_code: str          #from code generator agent
