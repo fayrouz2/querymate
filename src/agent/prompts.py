@@ -597,18 +597,3 @@ DataFrame Preview (first 5 rows):
 {df_preview}
 """
 
-
-def format_viz_code_prompt(viz_plan: dict, df):
-    """
-    Format a prompt for the Viz Code Agent.
-    :param viz_plan: JSON-like dictionary from Viz Planner
-    :param df: pandas DataFrame returned by the SQL query
-    :return: formatted prompt string
-    """
-    df_preview = df.head().to_string()
-    return VISUALIZATION_CODE_PROMPT.format(
-        viz_plan=viz_plan,
-        df_preview=df_preview
-    )
-
-
