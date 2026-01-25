@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Database (db)
+northwind.db
+
 # Distribution / packaging
 .Python
 build/
@@ -25,6 +28,11 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Local databases / data files
+data/*.db
+data/*.sqlite
+data/*.sqlite3
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -139,7 +147,10 @@ celerybeat.pid
 .envrc
 .env.example
 .venv
+.venv/
+venv/
 env/
+.env
 venv/
 ENV/
 env.bak/
