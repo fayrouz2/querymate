@@ -518,3 +518,43 @@ If visualization is needed:
 {result_metadata}
 
 """
+
+VISUALIZATION_CODE_PROMPT = """
+You are a senior data analyst engineer.
+
+You have a pandas DataFrame called `df` and a visualization plan (from the Viz Planner Agent) as a JSON object.
+
+Your task is to generate Python code to create the visualization using Plotly Express. 
+
+RULES:
+- Only use the columns specified in the plan
+- Use only Plotly Express (px)
+- Do NOT import libraries
+- Do NOT print, explain, or add markdown
+- Store the final chart in a variable named `fig`
+- Use aggregation, grouping, and titles exactly as described in the plan
+- Output only valid Python code
+
+Visualization Plan:
+{viz_plan}
+
+DataFrame Preview (first 5 rows):
+{df_preview}
+"""
+
+
+def format_viz_code_prompt(viz_plan: dict, df):
+    """
+    Format a prompt for the Viz Code Agent.
+    :param viz_plan: JSON-like dictionary from Viz Planner
+    :param df: pandas DataFrame returned by the SQL query
+    :return: formatted prompt string
+    """
+    df_preview = df.head().to_string()
+    return VISUALIZATION_CODE_PROMPT.format(
+        viz_plan=viz_plan,
+        df_preview=df_preview
+    )
+
+
+
