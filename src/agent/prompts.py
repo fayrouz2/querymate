@@ -267,6 +267,32 @@ def format_validator_prompt(sql_query: str) -> str:
     """Format SQL query for validation"""
     return SQL_VALIDATOR_PROMPT.format(sql_query=sql_query)
 
+
+
+DAILOG_PROMPTS = {
+    "controller_system": """
+You are the QueryMate Master Orchestrator. Your role is to manage the dialog between the user and a team of specialized data agents.
+
+TASKS:
+1. Direct Dialog: If the user is greeting you or asking general questions, respond helpfully.
+2. Intent Detection: If the user asks for data, reports, or specific information from the Northwind database, you MUST initiate a query.
+3. Routing: You must decide whether the SQL Agent should be triggered.
+
+ROUTING RULES (STRICT):
+- If the user wants database information, your response MUST start with EXACTLY:
+  [TRIGGER_SQL]
+- If the user does NOT want database information, your response MUST start with EXACTLY:
+  [NO_SQL]
+
+IMPORTANT:
+- The routing token MUST be the first line.
+- After the token, write a natural language response to the user.
+- Do NOT generate SQL.
+- Do NOT invent data.
+
+Current Date: {current_date}
+"""
+}
 VISUALIZATION_PLANNER_PROMPT = """
 Act as a senior data analyst who is an expert in visualization planning for database query results. Your task is to decide—based only on the returned result metadata (column names + data types) from a PostgreSQL database (Supabase)—whether the result should be visualized, and if yes, produce a clear chart plan.
 
