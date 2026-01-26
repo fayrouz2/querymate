@@ -2,7 +2,39 @@
 from typing import Annotated, List, TypedDict
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
-import operator
+
+class AgentState(TypedDict):
+    messages: Annotated[List[BaseMessage], add_messages]
+    next_step: str
+    sql_query: str | None
+
+# src/langgraph/state.py
+from typing import Annotated, List, TypedDict
+from langchain_core.messages import BaseMessage
+from langgraph.graph.message import add_messages
+
+class AgentState(TypedDict):
+    messages: Annotated[List[BaseMessage], add_messages]
+    next_step: str
+
+    # SQL Generator output
+    sql_query: str | None
+
+    # SQL Validator output
+    is_valid: bool | None
+    validation_message: str | None
+
+    # Loop control
+    retry_count: int | None
+
+# from typing import Annotated, List, TypedDict
+# from langchain_core.messages import BaseMessage
+# import operator
+
+# src/langgraph/state.py
+from typing import Annotated, List, TypedDict
+from langchain_core.messages import BaseMessage
+from langgraph.graph.message import add_messages
 
 class AgentState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
@@ -12,6 +44,9 @@ class AgentState(TypedDict):
 
 
     
+from typing import Annotated, List, TypedDict
+from langchain_core.messages import BaseMessage
+import operator
 
 
 class VizPlannerState(TypedDict, total=False):
@@ -31,5 +66,3 @@ class VizPlannerState(TypedDict, total=False):
 
     # Output of this agent
     viz_plan: str
-
-    viz_code: str          #from code generator agent
