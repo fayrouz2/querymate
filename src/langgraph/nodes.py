@@ -5,6 +5,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from src.agent.controller import run_master_agent
+from src.agent.sql_generator_agent import generate_sql_from_nlq
 from src.agent.prompts import VISUALIZATION_PLANNER_PROMPT,  VISUALIZATION_CODE_PROMPT
 from src.config import OPENAI_API_KEY
 from .state import VizPlannerState
@@ -30,6 +31,23 @@ def orchestrator_node(state):
         "messages": [response],
         "next_step": next_step
            }
+
+
+def sql_generator_node(state):
+    """
+    SQL Generator Node:
+    Takes the latest user question and generates SQL.
+    """
+    # Get last user message
+    user_message = state["messages"][-1].content
+
+    # Generate SQL from NLQ
+    sql_query = generate_sql_from_nlq(user_message)
+
+    return {
+        "sql_query": sql_query,
+        "next_step": "sql_validator"
+    }
 
 
 def visualization_planner_node(state: VizPlannerState) -> dict:
