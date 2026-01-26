@@ -32,8 +32,6 @@ def orchestrator_node(state):
            }
 
 
-
-
 def visualization_planner_node(state: VizPlannerState) -> dict:
     """
     Node that generates a visualization plan using your VISUALIZATION_PLANNER_PROMPT.
@@ -78,8 +76,6 @@ def visualization_planner_node(state: VizPlannerState) -> dict:
         "messages": [response],
         "viz_plan": response.content,
     }
-
-
 
 def visualization_code_generator_node(state):
     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
