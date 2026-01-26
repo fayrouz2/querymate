@@ -57,6 +57,7 @@ def sql_validator_node(state):
 # src/langgraph/nodes.py
 from src.agent.controller import run_master_agent
 
+
 def orchestrator_node(state):
     """
     The Master Node: Calls the master agent function and routes the flow.
