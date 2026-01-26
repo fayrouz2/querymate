@@ -14,8 +14,15 @@ class AgentState(TypedDict):
 
 class SQLGeneratorState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
-    next_step: str
     sql_query: str | None
+
+
+class SQLValidatorState(TypedDict):
+    messages: Annotated[List[BaseMessage], add_messages]
+    sql_query: str | None
+    is_valid: bool | None
+    validation_message: str | None
+    retry_count: int | None
 
 
 class VizPlannerState(TypedDict, total=False):
