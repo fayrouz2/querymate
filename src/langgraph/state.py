@@ -4,11 +4,18 @@ from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 import operator
 
+
 class AgentState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
     next_step: str           # routing
     sql_query: str | None
     is_valid: bool | None
+
+
+class SQLGeneratorState(TypedDict):
+    messages: Annotated[List[BaseMessage], add_messages]
+    next_step: str
+    sql_query: str | None
 
 
 class VizPlannerState(TypedDict, total=False):
