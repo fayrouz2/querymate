@@ -1,4 +1,4 @@
-# Prompt1 : Natural Language to SQL Conversion
+# Natural Language to SQL Conversionn Prompt
 NLQ_TO_SQL_PROMPT = """
 Act as a senior data analyst who is an expert in Natural Language Query (NLQ) to SQL generation. Your task is to convert natural language questions into accurate, executable SQL queries for a PostgreSQL database.
 
@@ -246,12 +246,7 @@ Return only the SQL query without any explanation or additional text. The query 
 {user_question}
 """
 
-# Function
-def format_nlq_to_sql(user_question: str) -> str:
-    """Format user question for GPT to generate SQL"""
-    return NLQ_TO_SQL_PROMPT.format(user_question=user_question)
-
-# Prompt 2 : SQL Valisator (Logical Checker)
+# SQL Validator (Logical Checker) Prompt
 SQL_VALIDATOR_PROMPT = """
 You are a SQL security validator. Analyze this SQL query for safety.
 RULES: REJECT DROP, DELETE, UPDATE, INSERT, ALTER. ONLY allow SELECT.
@@ -261,13 +256,6 @@ Query to validate:
 
 Response: Return "VALID" or "INVALID: [Reason]"
 """
-
-# Function
-def format_validator_prompt(sql_query: str) -> str:
-    """Format SQL query for validation"""
-    return SQL_VALIDATOR_PROMPT.format(sql_query=sql_query)
-
-
 
 DAILOG_PROMPTS = {
     "controller_system": """
@@ -293,6 +281,7 @@ IMPORTANT:
 Current Date: {current_date}
 """
 }
+
 VISUALIZATION_PLANNER_PROMPT = """
 Act as a senior data analyst who is an expert in visualization planning for database query results. Your task is to decide—based only on the returned result metadata (column names + data types) from a PostgreSQL database (Supabase)—whether the result should be visualized, and if yes, produce a clear chart plan.
 
@@ -597,3 +586,16 @@ DataFrame Preview (first 5 rows):
 {df_preview}
 """
 
+
+def format_viz_code_prompt(viz_plan: dict, df):
+    """
+    Format a prompt for the Viz Code Agent.
+    :param viz_plan: JSON-like dictionary from Viz Planner
+    :param df: pandas DataFrame returned by the SQL query
+    :return: formatted prompt string
+    """
+    df_preview = df.head().to_string()
+    return VISUALIZATION_CODE_PROMPT.format(
+        viz_plan=viz_plan,
+        df_preview=df_preview
+    )

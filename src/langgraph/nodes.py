@@ -1,13 +1,61 @@
+# src/langgraph/nodes.py
+from src.agent.sql_generator import generate_sql_from_nlq
+
+def sql_generator_node(state):
+    """
+    SQL Generator Node:
+    Takes the latest user question and generates SQL.
+    """
+    # Get last user message
+    user_message = state["messages"][-1].content
+
+    # Generate SQL from NLQ
+    sql_query = generate_sql_from_nlq(user_message)
+
+    return {
+        "sql_query": sql_query,
+        "next_step": "sql_validator"
+    }
+
+# src/langgraph/nodes.py
+from src.agent.sql_validator import validate_sql_query
+
+def sql_validator_node(state):
+    """
+    SQL Validator Node:
+    Validates the generated SQL query for safety.
+    """
+    sql_query = state.get("sql_query")
+
+    if not sql_query:
+        return {
+            "is_valid": False,
+            "validation_message": "No SQL query provided for validation",
+            "next_step": "sql_generator"
+        }
+
+    is_valid, message = validate_sql_query(sql_query)
+
+    if is_valid:
+        return {
+            "is_valid": True,
+            "validation_message": message,
+            "next_step": "execute_sql"  # أو visualization / next agent
+        }
+    else:
+        return {
+            "is_valid": False,
+            "validation_message": message,
+            "next_step": "sql_generator"  # LOOP BACK
+        }
+
+# from langchain_openai import ChatOpenAI
+# from langchain_core.messages import SystemMessage
 # from src.agent.prompts import PROMPTS
 
-import os
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
 
+# src/langgraph/nodes.py
 from src.agent.controller import run_master_agent
-from src.agent.prompts import VISUALIZATION_PLANNER_PROMPT,  VISUALIZATION_CODE_PROMPT
-from src.config import OPENAI_API_KEY
-from .state import VizPlannerState
 
 
 def orchestrator_node(state):
@@ -31,7 +79,14 @@ def orchestrator_node(state):
         "next_step": next_step
            }
 
+   
+import os
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
 
+from .state import VizPlannerState
+from src.agent.prompts import VISUALIZATION_PLANNER_PROMPT
+from src.config import OPENAI_API_KEY
 
 
 def visualization_planner_node(state: VizPlannerState) -> dict:
@@ -77,32 +132,4 @@ def visualization_planner_node(state: VizPlannerState) -> dict:
     return {
         "messages": [response],
         "viz_plan": response.content,
-    }
-
-
-
-def visualization_code_generator_node(state):
-    model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
-
-    viz_plan = state.get("viz_plan", "")
-    sample_rows = state.get("sample_rows", [])
-    df_preview = sample_rows[:5] if sample_rows else []
-
-    prompt = VISUALIZATION_CODE_PROMPT.format(
-        viz_plan=viz_plan,
-        df_preview=df_preview
-    )
-
-    system = SystemMessage(content="You generate Python Plotly visualization code only.")
-    human = HumanMessage(content=prompt)
-
-    prior_messages = state.get("messages") or []
-    messages = [system] + prior_messages + [human]
-
-    response = llm.invoke(messages)
-
-    return {
-        "messages": [response],
-        "viz_code": response.content.strip()
     }
