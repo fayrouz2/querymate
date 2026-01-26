@@ -6,6 +6,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 from src.agent.controller import run_master_agent
 from src.agent.sql_generator_agent import generate_sql_from_nlq
+from src.agent.sql_validator_agent import validate_sql_query
 from src.agent.prompts import VISUALIZATION_PLANNER_PROMPT,  VISUALIZATION_CODE_PROMPT
 from src.config import OPENAI_API_KEY
 from .state import VizPlannerState
@@ -49,6 +50,36 @@ def sql_generator_node(state):
         "next_step": "sql_validator"
     }
 
+
+def sql_validator_node(state):
+    """
+    SQL Validator Node:
+    Validates the generated SQL query for safety.
+    """
+    sql_query = state.get("sql_query")
+
+    if not sql_query:
+        return {
+            "is_valid": False,
+            "validation_message": "No SQL query provided for validation",
+            "next_step": "sql_generator"
+        }
+
+    is_valid, message = validate_sql_query(sql_query)
+
+    if is_valid:
+        return {
+            "is_valid": True,
+            "validation_message": message,
+            "next_step": "execute_sql"
+        }
+    else:
+        return {
+            "is_valid": False,
+            "validation_message": message,
+            "next_step": "sql_generator"
+        }
+    
 
 def visualization_planner_node(state: VizPlannerState) -> dict:
     """
@@ -94,6 +125,7 @@ def visualization_planner_node(state: VizPlannerState) -> dict:
         "messages": [response],
         "viz_plan": response.content,
     }
+
 
 def visualization_code_generator_node(state):
     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
