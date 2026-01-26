@@ -11,9 +11,6 @@ class AgentState(TypedDict):
     is_valid: bool | None
 
 
-    
-
-
 class VizPlannerState(TypedDict, total=False):
     """
     Shared state passed between LangGraph nodes.
