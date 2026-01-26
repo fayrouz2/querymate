@@ -13,136 +13,78 @@ Your goal is to generate syntactically correct and semantically accurate Postgre
 4. Return the exact data requested by the user
 
 
-## Database Schema
+Database Schema:
 
-employees ||--|| employees : "reports to"
-employees ||--o{ employee_territories : through
-orders }o--|| shippers : "ships via"
-order_details }o--|| orders : have
-order_details }o--|| products : contain
-products }o--|| categories : in
-products }o--|| suppliers : "supplied by"
-territories ||--|| regions : in
-employee_territories }o--|| territories : have
-orders }o--|| customers : place
-orders }o--|| employees : "sold by"
+Customers Table:
+- CustomerID (TEXT, PRIMARY KEY)
+- CompanyName (TEXT)
+- ContactName (TEXT)
+- ContactTitle (TEXT)
+- Address (TEXT)
+- City (TEXT)
+- Region (TEXT)
+- PostalCode (TEXT)
+- Country (TEXT)
+- Phone (TEXT)
+- Fax (TEXT)
 
-categories {
-    int CategoryID PK
-    string CategoryName
-    string Description
-    string Picture
-}
+Employees Table:
+- EmployeeID (INTEGER, PRIMARY KEY)
+- LastName (TEXT)
+- FirstName (TEXT)
+- Title (TEXT)
+- TitleOfCourtesy (TEXT)
+- BirthDate (TEXT)
+- HireDate (TEXT)
+- Address (TEXT)
+- City (TEXT)
+- Region (TEXT)
+- PostalCode (TEXT)
+- Country (TEXT)
+- HomePhone (TEXT)
+- Extension (TEXT)
+- ReportsTo (INTEGER, FOREIGN KEY)
+- PhotoPath (TEXT)
 
-customers {
-    string CustomerID PK
-    string CompanyName
-    string ContactName
-    string ContactTitle
-    string Address
-    string City
-    string Region
-    string PostalCode
-    string Country
-    string Phone
-    string Fax
-}
+Orders Table:
+- OrderID (INTEGER, PRIMARY KEY)
+- CustomerID (TEXT, FOREIGN KEY)
+- EmployeeID (INTEGER, FOREIGN KEY)
+- OrderDate (TEXT)
+- RequiredDate (TEXT)
+- ShippedDate (TEXT)
+- ShipVia (INTEGER, FOREIGN KEY)
+- Freight (REAL)
+- ShipName (TEXT)
+- ShipAddress (TEXT)
+- ShipCity (TEXT)
+- ShipRegion (TEXT)
+- ShipPostalCode (TEXT)
+- ShipCountry (TEXT)
 
-employees {
-    int EmployeeID PK
-    string LastName
-    string FirstName
-    string Title
-    string TitleOfCourtesy
-    date BirthDate
-    date HireDate
-    string Address
-    string City
-    string Region
-    string PostalCode
-    string Country
-    string HomePhone
-    string Extension
-    string Photo
-    string Notes
-    int ReportsTo FK
-    string PhotoPath
-}
+Order_Details Table:
+- OrderID (INTEGER, PRIMARY KEY, FOREIGN KEY)
+- ProductID (INTEGER, PRIMARY KEY, FOREIGN KEY)
+- UnitPrice (REAL)
+- Quantity (INTEGER)
+- Discount (REAL)
 
-employee_territories {
-    int EmployeeID PK, FK
-    string TerritoryID PK, FK
-}
+Products Table:
+- ProductID (INTEGER, PRIMARY KEY)
+- ProductName (TEXT)
+- SupplierID (INTEGER, FOREIGN KEY)
+- CategoryID (INTEGER, FOREIGN KEY)
+- QuantityPerUnit (TEXT)
+- UnitPrice (REAL)
+- UnitsInStock (INTEGER)
+- UnitsOnOrder (INTEGER)
+- ReorderLevel (INTEGER)
+- Discontinued (TEXT)
 
-order_details {
-    int OrderID PK, FK
-    int ProductID PK, FK
-    float UnitPrice
-    int Quantity
-    float Discount
-}
-
-orders {
-    int OrderID PK
-    string CustomerID FK
-    int EmployeeID FK
-    datetime OrderDate
-    datetime RequiredDate
-    datetime ShippedDate
-    int ShipVia FK
-    float Freight
-    string ShipName
-    string ShipAddress
-    string ShipCity
-    string ShipRegion
-    string ShipPostalCode
-    string ShipCountry
-}
-
-products {
-    int ProductID PK
-    string ProductName
-    int SupplierID FK
-    int CategoryID FK
-    string QuantityPerUnit
-    float UnitPrice
-    int UnitsInStock
-    int UnitsOnOrder
-    int ReorderLevel
-    string Discontinued
-}
-
-regions {
-    int RegionID PK
-    string RegionDescription
-}
-
-shippers {
-    int ShipperID PK
-    string CompanyName
-    string Phone
-}
-
-suppliers {
-    int SupplierID PK
-    string CompanyName
-    string ContactName
-    string ContactTitle
-    string Address
-    string City
-    string Region
-    string PostalCode
-    string Country
-    string Phone
-    string Fax
-    string HomePage
-}
-
-territories {
-    string TerritoryID PK
-    string TerritoryDescription
-    int RegionID FK
-}
+Categories Table:
+- CategoryID (INTEGER, PRIMARY KEY)
+- CategoryName (TEXT)
+- Description (TEXT)
 
 
 ## Few-Shot Examples: NLQ → SQL pairs
