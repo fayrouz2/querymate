@@ -74,5 +74,9 @@ class GraphState(TypedDict, total=False):
 
     # ---- Visualization ----
     viz_plan: Optional[str]
+<<<<<<< Updated upstream
+    viz_code: Optional[str]
+>>>>>>> Stashed changes
+=======
     viz_code: Optional[str]
 >>>>>>> Stashed changes
