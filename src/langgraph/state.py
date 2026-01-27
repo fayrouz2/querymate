@@ -37,3 +37,42 @@ class VizPlannerState(TypedDict, total=False):
 
     # Output of this agent
     viz_plan: str
+<<<<<<< Updated upstream
+=======
+
+    viz_code: str          #from code generator agent
+
+
+
+
+
+    # src/langgraph/state.py
+from typing import Annotated, List, TypedDict, Optional
+from langchain_core.messages import BaseMessage
+from langgraph.graph.message import add_messages
+import operator
+
+
+class GraphState(TypedDict, total=False):
+    # ---- Conversation ----
+    messages: Annotated[List[BaseMessage], add_messages]
+
+    # ---- Routing ----
+    next_step: str
+
+    # ---- SQL generation ----
+    sql_query: Optional[str]
+
+    # ---- SQL validation ----
+    is_valid: Optional[bool]
+    validation_message: Optional[str]
+    retry_count: Optional[int]
+
+    # ---- DB execution (future) ----
+    columns: Optional[List[str]]
+    sample_rows: Optional[List[dict]]
+
+    # ---- Visualization ----
+    viz_plan: Optional[str]
+    viz_code: Optional[str]
+>>>>>>> Stashed changes
