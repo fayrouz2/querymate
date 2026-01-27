@@ -6,18 +6,60 @@
 # src/langgraph/nodes.py
 from src.agent.controller import run_master_agent
 
-def orchestrator_node(state):
+# def orchestrator_node(state):
+#     """
+#     The Master Node: Calls the master agent function and routes the flow.
+#     """
+#     # 1. Call the Master Agent logic defined above
+#     response = run_master_agent(state["messages"])
+    
+#     # 2. Extract content to check for triggers 
+    
+#     content = response.content.strip()
+
+#     if content.startswith("[TRIGGER_SQL]"):
+#         next_step = "sql_generator"
+#     else:
+#         next_step = "end"
+
+#     return {
+#         "messages": [response],
+#         "next_step": next_step
+#            }
+
+###new nodes controlller 
+
+from langchain_core.messages import AIMessage
+from src.agent.controller import run_master_agent
+from .state import AgentState
+
+def orchestrator_node(state: AgentState):
     """
-    The Master Node: Calls the master agent function and routes the flow.
+    The Orchestrator: Controls the flow based on Repair Agent feedback.
     """
-    # 1. Call the Master Agent logic defined above
+    # STATUS 1: Repair Agent needs user clarification
+    if state.get("needs_clarification"):
+        feedback = state.get("feedback_reason", "Could you provide more details?")
+        return {
+            "messages": [AIMessage(content=f"I need a bit more info: {feedback}")],
+            "next_step": "end", # Stops the graph to wait for user
+            "needs_clarification": False # Reset for next turn
+        }
+
+    # STATUS 2: Query is unsupported by DB
+    if state.get("is_unsupported"):
+        return {
+            "messages": [AIMessage(content="I'm sorry, I can't perform that specific analysis on this database.")],
+            "next_step": "end",
+            "is_unsupported": False
+        }
+
+    # STATUS 3: Natural Dialog or New Request
     response = run_master_agent(state["messages"])
-    
-    # 2. Extract content to check for triggers 
-    
     content = response.content.strip()
 
-    if content.startswith("[TRIGGER_SQL]"):
+    # Routing logic based on your diagram
+    if "[TRIGGER_SQL]" in content:
         next_step = "sql_generator"
     else:
         next_step = "end"
@@ -25,15 +67,15 @@ def orchestrator_node(state):
     return {
         "messages": [response],
         "next_step": next_step
-           }
+    }
 
    
 import os
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-from .state import VizPlannerState
-from src.agent.prompts import PROMPTS
+from .state import AgentState, VizPlannerState
+from src.agent.prompts import DAILOG_PROMPTS
 
 
 def visualization_planner_node(state: VizPlannerState) -> dict:

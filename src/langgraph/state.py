@@ -3,15 +3,52 @@
 # import operator
 
 # src/langgraph/state.py
-from typing import Annotated, List, TypedDict
+from typing import Annotated, List, TypedDict, Optional
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 
+# class AgentState(TypedDict):
+#     messages: Annotated[List[BaseMessage], add_messages]
+#     next_step: str           # routing
+#     sql_query: str | None
+#     is_valid: bool | None
+
+####
+
+
 class AgentState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
-    next_step: str           # routing
-    sql_query: str | None
-    is_valid: bool | None
+    next_step: str        # Which node to execute next
+    sql_query: Optional[str]
+    is_valid: Optional[bool]
+    
+    # --- New Fields for the Repair Loop ---
+    # Status 1: Needs more details/clarity
+    needs_clarification: bool
+    # Status 2: Cannot be applied/Unsupported
+    is_unsupported: bool
+    # To pass the reason from Repair to Orchestrator
+    feedback_reason: Optional[str] 
+    
+    # --- Data for UI ---
+    columns: Optional[List[str]]
+    sample_rows: Optional[List[dict]]
+    viz_code: Optional[str]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     
@@ -37,8 +74,6 @@ class VizPlannerState(TypedDict, total=False):
 
     # Output of this agent
     viz_plan: str
-<<<<<<< Updated upstream
-=======
 
     viz_code: str          #from code generator agent
 
@@ -74,13 +109,9 @@ class GraphState(TypedDict, total=False):
 
     # ---- Visualization ----
     viz_plan: Optional[str]
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
+
     viz_code: Optional[str]
->>>>>>> Stashed changes
-=======
+
     viz_code: Optional[str]
->>>>>>> Stashed changes
-=======
+
     viz_code: Optional[str]
->>>>>>> Stashed changes
