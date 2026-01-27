@@ -1,15 +1,26 @@
 # src/langgraph/state.py
-from typing import Annotated, List, TypedDict
+from typing import Annotated, List, TypedDict , Optional
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 import operator
 
 
+
 class AgentState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
-    next_step: str           # routing
-    sql_query: str | None
-    is_valid: bool | None
+    next_step: str        # Which node to execute next
+    sql_query: Optional[str]
+    is_valid: Optional[bool]
+    
+    needs_clarification: bool
+    is_unsupported: bool
+    # To pass the reason from Repair to Orchestrator
+    feedback_reason: Optional[str] 
+    
+    # --- Data for UI ---
+    columns: Optional[List[str]]
+    sample_rows: Optional[List[dict]]
+    viz_code: Optional[str]
 
 
 class SQLGeneratorState(TypedDict):

@@ -11,19 +11,33 @@ from src.agent.prompts import VISUALIZATION_PLANNER_PROMPT,  VISUALIZATION_CODE_
 from src.config import OPENAI_API_KEY
 from .state import VizPlannerState
 
+from langchain_core.messages import AIMessage
+from .state import AgentState
 
-def orchestrator_node(state):
+def orchestrator_node(state: AgentState):
     """
-    The Master Node: Calls the master agent function and routes the flow.
+    The Orchestrator: Controls the flow based on Repair Agent feedback.
     """
-    # 1. Call the Master Agent logic defined above
+    if state.get("needs_clarification"):
+        feedback = state.get("feedback_reason", "Could you provide more details?")
+        return {
+            "messages": [AIMessage(content=f"I need a bit more info: {feedback}")],
+            "next_step": "end", # Stops the graph to wait for user
+            "needs_clarification": False # Reset for next turn
+        }
+
+    if state.get("is_unsupported"):
+        return {
+            "messages": [AIMessage(content="I'm sorry, I can't perform that specific analysis on this database.")],
+            "next_step": "end",
+            "is_unsupported": False
+        }
+
     response = run_master_agent(state["messages"])
-    
-    # 2. Extract content to check for triggers 
-    
     content = response.content.strip()
 
-    if content.startswith("[TRIGGER_SQL]"):
+   
+    if "[TRIGGER_SQL]" in content:
         next_step = "sql_generator"
     else:
         next_step = "end"
@@ -31,8 +45,7 @@ def orchestrator_node(state):
     return {
         "messages": [response],
         "next_step": next_step
-           }
-
+    }
 
 def sql_generator_node(state):
     """
