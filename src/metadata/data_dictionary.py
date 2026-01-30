@@ -3,47 +3,47 @@ DATA_DICTIONARY = {
         "customers": {
             "description": "Contains customer contact info",
             "columns": {
-                "customer_id": {
+                "CustomerID": {
                     "description": "Unique customer identifier",
                     "synonyms": ["customer id", "customer", "client id", "client identifier"]
                 },
-                "company_name": {
+                "CompanyName": {
                     "description": "Name of customer company",
-                    "synonyms": ["company", "customer company", "business name"]
+                    "synonyms": ["company", "customer company", "business name","customer name"]
                 },
-                "contact_name": {
+                "ContactName": {
                     "description": "Name of contact person for customer",
                     "synonyms": ["contact", "contact person", "contact name"]
                 },
-                "contact_title": {
+                "ContactTitle": {
                     "description": "Job title of contact",
                     "synonyms": ["title", "contact title"]
                 },
-                "address": {
+                "Address": {
                     "description": "Customer street address",
                     "synonyms": ["address", "street address"]
                 },
-                "city": {
+                "City": {
                     "description": "City where customer is located",
                     "synonyms": ["city", "town"]
                 },
-                "region": {
+                "Region": {
                     "description": "Region or state for customer",
                     "synonyms": ["region", "state"]
                 },
-                "postal_code": {
+                "PostalCode": {
                     "description": "Postal code of customer",
                     "synonyms": ["postal code", "zip", "zip code"]
                 },
-                "country": {
+                "Country": {
                     "description": "Country of customer",
                     "synonyms": ["country", "nation"]
                 },
-                "phone": {
+                "Phone": {
                     "description": "Customer phone number",
                     "synonyms": ["phone", "phone number", "telephone"]
                 },
-                "fax": {
+                "Fax": {
                     "description": "Customer fax number",
                     "synonyms": ["fax", "fax number"]
                 },
@@ -53,39 +53,39 @@ DATA_DICTIONARY = {
         "orders": {
             "description": "Order header information",
             "columns": {
-                "order_id": {
+                "OrderID": {
                     "description": "Unique identifier for each order",
                     "synonyms": ["order id", "order number", "order"]
                 },
-                "customer_id": {
+                "CustomerID": {
                     "description": "ID of customer placing order",
                     "synonyms": ["customer id", "who ordered"]
                 },
-                "employee_id": {
+                "EmployeeID": {
                     "description": "ID of employee handling order",
                     "synonyms": ["employee id", "handled by"]
                 },
-                "order_date": {
+                "OrderDate": {
                     "description": "Date when order was created",
                     "synonyms": ["order date", "date"]
                 },
-                "required_date": {
+                "RequiredDate": {
                     "description": "Date order is required",
                     "synonyms": ["required date"]
                 },
-                "shipped_date": {
+                "ShippedDate": {
                     "description": "Date order was shipped",
                     "synonyms": ["shipped date"]
                 },
-                "freight": {
+                "Freight": {
                     "description": "Shipping cost",
                     "synonyms": ["freight", "shipping cost", "shipping charge"]
                 },
-                "ship_city": {
+                "ShipCity": {
                     "description": "City where order was shipped",
                     "synonyms": ["ship city", "shipping city"]
                 },
-                "ship_country": {
+                "ShipCountry": {
                     "description": "Country where order was shipped",
                     "synonyms": ["ship country", "shipping country"]
                 },
@@ -95,43 +95,43 @@ DATA_DICTIONARY = {
         "products": {
             "description": "Product catalog and pricing",
             "columns": {
-                "product_id": {
+                "ProductID": {
                     "description": "Unique product identifier",
                     "synonyms": ["product id", "product number"]
                 },
-                "product_name": {
+                "ProductName": {
                     "description": "Name of the product",
                     "synonyms": ["product", "product name", "item"]
                 },
-                "supplier_id": {
+                "SupplierID": {
                     "description": "ID of supplier",
                     "synonyms": ["supplier", "who supplies"]
                 },
-                "category_id": {
+                "CategoryID": {
                     "description": "Category classification ID",
                     "synonyms": ["category", "product category"]
                 },
-                "quantity_per_unit": {
+                "QuantityPerUnit": {
                     "description": "Quantity per unit description",
                     "synonyms": ["quantity per unit", "qty per unit"]
                 },
-                "unit_price": {
+                "UnitPrice": {
                     "description": "Price per unit",
                     "synonyms": ["unit price", "price", "cost"]
                 },
-                "units_in_stock": {
+                "UnitsInStock": {
                     "description": "Number of units currently in stock",
                     "synonyms": ["stock", "units in stock", "inventory"]
                 },
-                "units_on_order": {
+                "UnitsOnOrder": {
                     "description": "Units currently on order",
                     "synonyms": ["units on order"]
                 },
-                "reorder_level": {
+                "ReorderLevel": {
                     "description": "Level at which product should be reordered",
                     "synonyms": ["reorder level", "reorder threshold"]
                 },
-                "discontinued": {
+                "Discontinued": {
                     "description": "Whether product is discontinued",
                     "synonyms": ["discontinued", "no longer sold"]
                 },
@@ -141,23 +141,23 @@ DATA_DICTIONARY = {
         "order_details": {
             "description": "Line details for orders (many-to-many orders/products)",
             "columns": {
-                "order_id": {
+                "OrderID": {
                     "description": "Order ID for this detail",
                     "synonyms": ["order id"]
                 },
-                "product_id": {
+                "ProductID": {
                     "description": "Product ID for this detail",
                     "synonyms": ["product id"]
                 },
-                "unit_price": {
+                "UnitPrice": {
                     "description": "Price of product at order time",
                     "synonyms": ["unit price", "price"]
                 },
-                "quantity": {
+                "Quantity": {
                     "description": "Quantity ordered",
                     "synonyms": ["quantity", "amount ordered"]
                 },
-                "discount": {
+                "Discount": {
                     "description": "Discount applied",
                     "synonyms": ["discount", "price reduction"]
                 },
@@ -167,15 +167,15 @@ DATA_DICTIONARY = {
         "categories": {
             "description": "Product categories (e.g., Beverages, Seafood)",
             "columns": {
-                "category_id": {
+                "CategoryID": {
                     "description": "Unique category identifier",
                     "synonyms": ["category id", "category number"]
                 },
-                "category_name": {
+                "CategoryName": {
                     "description": "Name of the product category",
                     "synonyms": ["category", "category name", "product category"]
                 },
-                "description": {
+                "Description": {
                     "description": "Description of the category",
                     "synonyms": ["category description"]
                 }
@@ -185,15 +185,15 @@ DATA_DICTIONARY = {
         "shippers": {
             "description": "Shipping companies that deliver orders",
             "columns": {
-                "shipper_id": {
+                "ShipperID": {
                     "description": "Unique shipper identifier",
                     "synonyms": ["shipper id", "shipping company id"]
                 },
-                "company_name": {
+                "CompanyName": {
                     "description": "Name of the shipping company",
                     "synonyms": ["shipper", "shipping company", "carrier"]
                 },
-                "phone": {
+                "Phone": {
                     "description": "Shipper phone number",
                     "synonyms": ["shipper phone", "carrier phone"]
                 }
@@ -203,27 +203,27 @@ DATA_DICTIONARY = {
         "suppliers": {
             "description": "Suppliers that provide products",
             "columns": {
-                "supplier_id": {
+                "SupplierID": {
                     "description": "Unique supplier identifier",
                     "synonyms": ["supplier id", "vendor id"]
                 },
-                "company_name": {
+                "CompanyName": {
                     "description": "Supplier company name",
                     "synonyms": ["supplier", "vendor", "supplier company"]
                 },
-                "contact_name": {
+                "ContactName": {
                     "description": "Supplier contact person",
                     "synonyms": ["supplier contact", "vendor contact"]
                 },
-                "city": {
+                "City": {
                     "description": "City of supplier",
                     "synonyms": ["supplier city"]
                 },
-                "country": {
+                "Country": {
                     "description": "Country of supplier",
                     "synonyms": ["supplier country"]
                 },
-                "phone": {
+                "Phone": {
                     "description": "Supplier phone number",
                     "synonyms": ["supplier phone"]
                 }
@@ -233,39 +233,39 @@ DATA_DICTIONARY = {
         "employees": {
             "description": "Company employees who manage orders",
             "columns": {
-                "employee_id": {
+                "EmployeeID": {
                     "description": "Unique employee identifier",
                     "synonyms": ["employee id", "staff id"]
                 },
-                "first_name": {
+                "FirstName": {
                     "description": "Employee first name",
                     "synonyms": ["first name"]
                 },
-                "last_name": {
+                "LastName": {
                     "description": "Employee last name",
                     "synonyms": ["last name", "surname"]
                 },
-                "title": {
+                "Title": {
                     "description": "Employee job title",
                     "synonyms": ["job title", "position"]
                 },
-                "birth_date": {
+                "BirthDate": {
                     "description": "Employee date of birth",
                     "synonyms": ["birthday", "date of birth"]
                 },
-                "hire_date": {
+                "HireDate": {
                     "description": "Date employee was hired",
                     "synonyms": ["hire date", "start date"]
                 },
-                "city": {
+                "City": {
                     "description": "Employee city",
                     "synonyms": ["employee city"]
                 },
-                "country": {
+                "Country": {
                     "description": "Employee country",
                     "synonyms": ["employee country"]
                 },
-                "reports_to": {
+                "ReportsTo": {
                     "description": "Manager employee ID",
                     "synonyms": ["manager", "reports to", "supervisor"]
                 }
@@ -275,15 +275,15 @@ DATA_DICTIONARY = {
         "territories": {
             "description": "Sales territories assigned to employees",
             "columns": {
-                "territory_id": {
+                "TerritoryID": {
                     "description": "Unique territory identifier",
                     "synonyms": ["territory id"]
                 },
-                "territory_description": {
+                "TerritoryDescription": {
                     "description": "Name/description of territory",
                     "synonyms": ["territory name", "sales territory"]
                 },
-                "region_id": {
+                "RegionID": {
                     "description": "Region this territory belongs to",
                     "synonyms": ["region id"]
                 }
@@ -293,11 +293,11 @@ DATA_DICTIONARY = {
         "employee_territories": {
             "description": "Mapping between employees and territories",
             "columns": {
-                "employee_id": {
+                "EmployeeID": {
                     "description": "Employee assigned to territory",
                     "synonyms": ["employee id"]
                 },
-                "territory_id": {
+                "TerritoryID": {
                     "description": "Territory assigned to employee",
                     "synonyms": ["territory id"]
                 }
@@ -307,11 +307,11 @@ DATA_DICTIONARY = {
         "customer_demographics": {
             "description": "Types of customer demographics",
             "columns": {
-                "customer_type_id": {
+                "CustomerTypeID": {
                     "description": "Unique customer type identifier",
                     "synonyms": ["customer type id"]
                 },
-                "customer_desc": {
+                "CustomerDesc": {
                     "description": "Description of customer demographic type",
                     "synonyms": ["customer type", "demographic description"]
                 }
@@ -321,11 +321,11 @@ DATA_DICTIONARY = {
         "customer_customer_demo": {
             "description": "Mapping between customers and demographic types",
             "columns": {
-                "customer_id": {
+                "CustomerID": {
                     "description": "Customer identifier",
                     "synonyms": ["customer id"]
                 },
-                "customer_type_id": {
+                "CustomerTypeID": {
                     "description": "Customer demographic type identifier",
                     "synonyms": ["customer type id"]
                 }
