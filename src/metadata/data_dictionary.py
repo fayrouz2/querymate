@@ -9,7 +9,7 @@ DATA_DICTIONARY = {
                 },
                 "CompanyName": {
                     "description": "Name of customer company",
-                    "synonyms": ["company", "customer company", "business name","customer name"]
+                    "synonyms": ["company", "customer company", "business name", "customer name"]
                 },
                 "ContactName": {
                     "description": "Name of contact person for customer",
@@ -302,36 +302,7 @@ DATA_DICTIONARY = {
                     "synonyms": ["territory id"]
                 }
             }
-        },
-
-        "customer_demographics": {
-            "description": "Types of customer demographics",
-            "columns": {
-                "CustomerTypeID": {
-                    "description": "Unique customer type identifier",
-                    "synonyms": ["customer type id"]
-                },
-                "CustomerDesc": {
-                    "description": "Description of customer demographic type",
-                    "synonyms": ["customer type", "demographic description"]
-                }
-            }
-        },
-
-        "customer_customer_demo": {
-            "description": "Mapping between customers and demographic types",
-            "columns": {
-                "CustomerID": {
-                    "description": "Customer identifier",
-                    "synonyms": ["customer id"]
-                },
-                "CustomerTypeID": {
-                    "description": "Customer demographic type identifier",
-                    "synonyms": ["customer type id"]
-                }
-            }
-        },
-
+        }
     }
 }
 

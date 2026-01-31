@@ -1,5 +1,3 @@
-# from src.agent.prompts import PROMPTS
-
 import os
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -84,7 +82,7 @@ def sql_generator_node(state):
 
     return {
         "sql_query": sql_query,
-        "next_step": "sql_validator"
+        "next_step": "db_tool"
     }
 
  
