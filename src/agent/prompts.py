@@ -188,16 +188,6 @@ Return only the SQL query without any explanation or additional text. The query 
 {user_question}
 """
 
-# SQL Validator (Logical Checker) Prompt
-SQL_VALIDATOR_PROMPT = """
-You are a SQL security validator. Analyze this SQL query for safety.
-RULES: REJECT DROP, DELETE, UPDATE, INSERT, ALTER. ONLY allow SELECT.
-
-Query to validate:
-{sql_query}
-
-Response: Return "VALID" or "INVALID: [Reason]"
-"""
 
 DAILOG_PROMPTS = {
     "controller_system": """
@@ -518,4 +508,25 @@ Visualization Plan:
 
 DataFrame Preview (first 5 rows):
 {df_preview}
+"""
+
+REPAIR_SYSTEM_PROMPT = """
+You are the SQL Repair & Reasoning Agent for Northwind DB.
+Your mission is to fix SQL errors by strictly following the Data Dictionary and Schema.
+
+DATA DICTIONARY:
+{data_dictionary}
+
+GUIDELINES:
+1. REPAIR: If a column or table name is wrong, check 'synonyms' in the dictionary and use the actual name.
+2. CLARIFY: If the user's intent matches multiple synonyms or is vague, stop and ask the Orchestrator for clarification.
+3. FAIL: If the request asks for data not present in the tables above or is a dangerous operation (DELETE/DROP).
+
+OUTPUT FORMAT:
+Return only a JSON object:
+{{
+  "action": "REPAIR" | "CLARIFY" | "FAIL",
+  "repaired_sql": "The corrected SQL if action is REPAIR",
+  "reason": "Explain why this decision was made"
+}}
 """

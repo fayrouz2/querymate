@@ -1,5 +1,5 @@
 # src/langgraph/state.py
-from typing import Annotated, List, TypedDict , Optional
+from typing import Annotated, List, TypedDict , Optional, Dict, Any
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 import operator
@@ -55,3 +55,24 @@ class VizPlannerState(TypedDict, total=False):
     viz_plan: str
 
     viz_code: str          #from code generator agent
+
+
+
+class AgentState(TypedDict):
+    # Core conversation history
+    messages: Annotated[List[BaseMessage], add_messages]
+    
+    # Technical SQL data
+    sql_query: Optional[str]
+    db_result: Optional[Dict[str, Any]] # Stores the Error Envelope from DB Tool
+    
+    # Repair loop control
+    repair_attempt: int # Counter for the 3-round limit
+    
+    # Orchestrator control flags
+    needs_clarification: bool # Triggered if intent is ambiguous
+    is_unsupported: bool      # Triggered if request is impossible/dangerous
+    feedback_reason: Optional[str] # Explanation for the user/orchestrator
+    
+    # Routing
+    next_step: str # Determines the next node in the graph

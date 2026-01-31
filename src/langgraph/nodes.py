@@ -6,13 +6,17 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 from src.agent.controller import run_master_agent
 from src.agent.sql_generator_agent import generate_sql_from_nlq
-from src.agent.sql_validator_agent import validate_sql_query
+
 from src.agent.prompts import VISUALIZATION_PLANNER_PROMPT,  VISUALIZATION_CODE_PROMPT
 from src.config import OPENAI_API_KEY
 from .state import VizPlannerState
 
 from langchain_core.messages import AIMessage
 from .state import AgentState
+import json
+from src.metadata.data_dictionary import DATA_DICTIONARY
+from src.agent.prompts import REPAIR_SYSTEM_PROMPT
+from src.agent.sql_validator_agent import repair_reasoning_engine
 
 def orchestrator_node(state: AgentState):
     """
@@ -26,12 +30,31 @@ def orchestrator_node(state: AgentState):
             "needs_clarification": False # Reset for next turn
         }
 
+    # if state.get("is_unsupported"):
+    #     return {
+    #         "messages": [AIMessage(content="I'm sorry, I can't perform that specific analysis on this database.")],
+    #         "next_step": "end",
+    #         "is_unsupported": False
+    #     }
     if state.get("is_unsupported"):
+    
+        reason = state.get("feedback_reason", "")
+        
+      
+        if "DELETE" in reason.upper() or "DROP" in reason.upper():
+            user_msg = "I'm sorry, but for security reasons, I can only analyze data, not delete or modify it."
+        elif "Max repair attempts" in reason:
+            user_msg = "I apologize, I've run into a technical issue while processing this request and couldn't resolve it after several attempts."
+        else:
+          
+            user_msg = "I'm sorry, I can't perform that specific analysis on this database with the information currently available."
+
         return {
-            "messages": [AIMessage(content="I'm sorry, I can't perform that specific analysis on this database.")],
-            "next_step": "end",
-            "is_unsupported": False
+            "messages": [AIMessage(content=user_msg)],
+            "next_step": "end", 
+            "is_unsupported": False 
         }
+  
 
     response = run_master_agent(state["messages"])
     content = response.content.strip()
@@ -46,6 +69,7 @@ def orchestrator_node(state: AgentState):
         "messages": [response],
         "next_step": next_step
     }
+
 
 def sql_generator_node(state):
     """
@@ -63,36 +87,7 @@ def sql_generator_node(state):
         "next_step": "sql_validator"
     }
 
-
-def sql_validator_node(state):
-    """
-    SQL Validator Node:
-    Validates the generated SQL query for safety.
-    """
-    sql_query = state.get("sql_query")
-
-    if not sql_query:
-        return {
-            "is_valid": False,
-            "validation_message": "No SQL query provided for validation",
-            "next_step": "sql_generator"
-        }
-
-    is_valid, message = validate_sql_query(sql_query)
-
-    if is_valid:
-        return {
-            "is_valid": True,
-            "validation_message": message,
-            "next_step": "execute_sql"
-        }
-    else:
-        return {
-            "is_valid": False,
-            "validation_message": message,
-            "next_step": "sql_generator"
-        }
-    
+ 
 
 def visualization_planner_node(state: VizPlannerState) -> dict:
     """
@@ -165,3 +160,53 @@ def visualization_code_generator_node(state):
         "messages": [response],
         "viz_code": response.content.strip()
     }
+
+
+
+
+def sql_repair_node(state: AgentState):
+    """
+    SQL Repair Node: Analyzes DB errors and decides the next step based on the Dictionary.
+    """
+    db_result = state.get("db_result")
+    attempt = state.get("repair_attempt", 0)
+    
+    if attempt >= 3:
+        return {
+            "is_unsupported": True,
+            "feedback_reason": "Max repair attempts reached.",
+            "next_step": "orchestrator"
+        }
+
+    # Extract info from state
+    error_data = db_result.get("error", {})
+    failed_sql = db_result.get("query", {}).get("sql")
+    user_intent = state["messages"][-1].content 
+
+    decision = repair_reasoning_engine(
+        intent=user_intent, 
+        sql=failed_sql, 
+        error_info=error_data, 
+        dictionary=DATA_DICTIONARY # Pass as dict, not formatted string
+    )
+    
+    action = decision.get("action")
+    updates = {
+        "needs_clarification": False,
+        "is_unsupported": False,
+        "feedback_reason": decision.get("reason")
+    }
+
+    # Routing Logic based on your architecture
+    if action == "REPAIR":
+        updates.update({
+            "sql_query": decision.get("repaired_sql"),
+            "repair_attempt": attempt + 1,
+            "next_step": "db_tool"
+        })
+    elif action == "CLARIFY":
+        updates.update({"needs_clarification": True, "next_step": "orchestrator"})
+    else: # FAIL case
+        updates.update({"is_unsupported": True, "next_step": "orchestrator"})
+
+    return updates
