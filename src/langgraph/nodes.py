@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from src.agent.controller import run_master_agent
-from src.agent.sql_generator_agent import generate_sql_from_nlq
+from src.agent.sql_generator_agent import generate_sql_from_nl
 
 from src.agent.prompts import VISUALIZATION_PLANNER_PROMPT,  VISUALIZATION_CODE_PROMPT
 from src.config import OPENAI_API_KEY
@@ -22,48 +22,112 @@ from typing import Dict, Any
 
 from src.database.extract_db_result_preview import _extract_columns_and_sample_rows
 
-def orchestrator_node(state: AgentState):
+
+# def orchestrator_node(state: AgentState):
+#     """
+#     The Orchestrator: Controls the flow based on Repair Agent feedback.
+#     """
+#     if state.get("needs_clarification"):
+#         feedback = state.get("feedback_reason", "Could you provide more details?")
+#         return {
+#             "messages": [AIMessage(content=f"I need a bit more info: {feedback}")],
+#             "next_step": "end", # Stops the graph to wait for user
+#             "needs_clarification": False # Reset for next turn
+#         }
+
+#     # if state.get("is_unsupported"):
+#     #     return {
+#     #         "messages": [AIMessage(content="I'm sorry, I can't perform that specific analysis on this database.")],
+#     #         "next_step": "end",
+#     #         "is_unsupported": False
+#     #     }
+#     if state.get("is_unsupported"):
+    
+#         reason = state.get("feedback_reason", "")
+        
+      
+#         if "DELETE" in reason.upper() or "DROP" in reason.upper():
+#             user_msg = "I'm sorry, but for security reasons, I can only analyze data, not delete or modify it."
+#         elif "Max repair attempts" in reason:
+#             user_msg = "I apologize, I've run into a technical issue while processing this request and couldn't resolve it after several attempts."
+#         else:
+          
+#             user_msg = "I'm sorry, I can't perform that specific analysis on this database with the information currently available."
+
+#         return {
+#             "messages": [AIMessage(content=user_msg)],
+#             "next_step": "end", 
+#             "is_unsupported": False 
+#         }
+  
+
+#     response = run_master_agent(state["messages"])
+#     content = response.content.strip()
+
+   
+#     if "[TRIGGER_SQL]" in content:
+#         next_step = "sql_generator"
+#     else:
+#         next_step = "end"
+
+#     return {
+#         "messages": [response],
+#         "next_step": next_step
+#     }
+
+
+####updated orecstrotr node async
+
+async def orchestrator_node(state: AgentState):
     """
-    The Orchestrator: Controls the flow based on Repair Agent feedback.
+    The Orchestrator: Controls the flow based on technical feedback 
+    and presents final results to the user.
     """
+    # 1. Handle Clarification Requests (From Repair Agent)
     if state.get("needs_clarification"):
         feedback = state.get("feedback_reason", "Could you provide more details?")
         return {
             "messages": [AIMessage(content=f"I need a bit more info: {feedback}")],
-            "next_step": "end", # Stops the graph to wait for user
-            "needs_clarification": False # Reset for next turn
+            "next_step": "end",
+            "needs_clarification": False
         }
 
-    # if state.get("is_unsupported"):
-    #     return {
-    #         "messages": [AIMessage(content="I'm sorry, I can't perform that specific analysis on this database.")],
-    #         "next_step": "end",
-    #         "is_unsupported": False
-    #     }
+    # 2. Handle Errors or Security Blocks (From DB Tool/Repair Agent)
     if state.get("is_unsupported"):
-    
         reason = state.get("feedback_reason", "")
         
-      
-        if "DELETE" in reason.upper() or "DROP" in reason.upper():
-            user_msg = "I'm sorry, but for security reasons, I can only analyze data, not delete or modify it."
+        # Specific check for your DB Tool's Policy Violation
+        if "POLICY_VIOLATION" in reason.upper() or "Security" in reason:
+            user_msg = "For security reasons, I can only analyze data. I am not allowed to perform modifications or use forbidden commands."
         elif "Max repair attempts" in reason:
-            user_msg = "I apologize, I've run into a technical issue while processing this request and couldn't resolve it after several attempts."
+            user_msg = "I've tried to resolve the technical issues with this query several times but was unsuccessful. Could you try rephrasing your question?"
         else:
-          
             user_msg = "I'm sorry, I can't perform that specific analysis on this database with the information currently available."
 
         return {
             "messages": [AIMessage(content=user_msg)],
-            "next_step": "end", 
+            "next_step": "end",
             "is_unsupported": False 
         }
-  
 
-    response = run_master_agent(state["messages"])
+    # 3. Handle Success: Presentation Phase
+    # Check if we have a successful result from the DB or Viz agents
+    db_res = state.get("db_result", {})
+    if db_res.get("ok"):
+        # You can add a summary here (e.g., "I found 10 records...")
+        row_count = db_res.get("data", {}).get("row_count", 0)
+        success_msg = f"I've analyzed the data ({row_count} records found) and prepared the results for you below."
+        
+        return {
+            "messages": [AIMessage(content=success_msg)],
+            "next_step": "end" # End the technical flow and show the result
+        }
+
+    # 4. Standard Flow: Initial Request Handling
+    # Use await if run_master_agent is an LLM call
+    response = await run_master_agent(state["messages"])
     content = response.content.strip()
 
-   
     if "[TRIGGER_SQL]" in content:
         next_step = "sql_generator"
     else:
@@ -74,7 +138,6 @@ def orchestrator_node(state: AgentState):
         "next_step": next_step
     }
 
-
 def sql_generator_node(state):
     """
     SQL Generator Node:
@@ -83,12 +146,12 @@ def sql_generator_node(state):
     # Get last user message
     user_message = state["messages"][-1].content
 
-    # Generate SQL from NLQ
-    sql_query = generate_sql_from_nlq(user_message)
+    # Generate SQL from NL
+    sql_query = generate_sql_from_nl(user_message)
 
     return {
         "sql_query": sql_query,
-        "next_step": "db_tool"
+        "next_step": "db_execute"
     }
 
 def visualization_planner_node(state: "VizPlannerState") -> dict:
@@ -246,50 +309,108 @@ def visualization_code_generator_node(state):
 
 
 
-def sql_repair_node(state: AgentState):
-    """
-    SQL Repair Node: Analyzes DB errors and decides the next step based on the Dictionary.
-    """
-    db_result = state.get("db_result")
-    attempt = state.get("repair_attempt", 0)
+
+# def sql_repair_node(state: AgentState):
+#     """
+#     SQL Repair Node: Analyzes DB errors and decides the next step based on the Dictionary.
+#     """
+#     db_result = state.get("db_result")
+#     attempt = state.get("repair_attempt", 0)
     
-    if attempt >= 3:
+#     if attempt >= 3:
+#         return {
+#             "is_unsupported": True,
+#             "feedback_reason": "Max repair attempts reached.",
+#             "next_step": "orchestrator"
+#         }
+
+#     # Extract info from state
+#     error_data = db_result.get("error", {})
+#     failed_sql = db_result.get("query", {}).get("sql")
+#     user_intent = state["messages"][-1].content 
+
+#     decision = repair_reasoning_engine(
+#         intent=user_intent, 
+#         sql=failed_sql, 
+#         error_info=error_data, 
+#         dictionary=DATA_DICTIONARY # Pass as dict, not formatted string
+#     )
+    
+#     action = decision.get("action")
+#     updates = {
+#         "needs_clarification": False,
+#         "is_unsupported": False,
+#         "feedback_reason": decision.get("reason")
+#     }
+
+#     # Routing Logic based on your architecture
+#     if action == "REPAIR":
+#         updates.update({
+#             "sql_query": decision.get("repaired_sql"),
+#             "repair_attempt": attempt + 1,
+#             "next_step": "db_tool"
+#         })
+#     elif action == "CLARIFY":
+#         updates.update({"needs_clarification": True, "next_step": "orchestrator"})
+#     else: # FAIL case
+#         updates.update({"is_unsupported": True, "next_step": "orchestrator"})
+
+#     return updates
+
+#updated Repaire for DB tools
+
+async def sql_repair_node(state: AgentState):
+    """
+    Analyzes DB errors and decides whether to repair, clarify, or fail.
+    Integrated with SupabaseDBToolAsync envelope structure.
+    """
+    # 1. Get the envelope from your DB Tool
+    db_res = state.get("db_result", {})
+    error_data = db_res.get("error") or {}
+    failed_sql = db_res.get("query", {}).get("sql", "")
+
+    # 2. IMMEDIATE GATE: Handle Policy Violations
+    # If the DB Tool blocked the query (DELETE, UPDATE, etc.), don't try to repair it.
+    if error_data.get("type") == "POLICY_VIOLATION":
         return {
+            "next_step": "orchestrator",
             "is_unsupported": True,
-            "feedback_reason": "Max repair attempts reached.",
-            "next_step": "orchestrator"
+            "feedback_reason": f"Security Policy Violation: {error_data.get('message')}"
         }
 
-    # Extract info from state
-    error_data = db_result.get("error", {})
-    failed_sql = db_result.get("query", {}).get("sql")
-    user_intent = state["messages"][-1].content 
-
-    decision = repair_reasoning_engine(
-        intent=user_intent, 
-        sql=failed_sql, 
-        error_info=error_data, 
-        dictionary=DATA_DICTIONARY # Pass as dict, not formatted string
+    # 3. Call Reasoning Engine for technical errors (SQL_ERROR, etc.)
+    # We pass the full error_data so the LLM can see 'hint' and 'details'
+    decision = await repair_reasoning_engine(
+        intent=state["messages"][-1].content,
+        sql=failed_sql,
+        error_info=error_data,
+        dictionary=DATA_DICTIONARY
     )
+
+    # 4. Process Decision & Prepare Updates
+    action = decision.get("action")  # Expected: "REPAIR", "CLARIFY", "FAIL"
     
-    action = decision.get("action")
+    # We increment the count here to ensure the DB Tool's circuit breaker works
+    current_count = state.get("repair_count", 0)
+    
     updates = {
-        "needs_clarification": False,
-        "is_unsupported": False,
-        "feedback_reason": decision.get("reason")
+        "feedback_reason": decision.get("reason"),
+        "repair_count": current_count + 1 
     }
 
-    # Routing Logic based on your architecture
     if action == "REPAIR":
-        updates.update({
-            "sql_query": decision.get("repaired_sql"),
-            "repair_attempt": attempt + 1,
-            "next_step": "db_tool"
-        })
+        updates["sql_query"] = decision.get("repaired_sql")
+        updates["next_step"] = "db_execute"  # Matches your node name
+    
     elif action == "CLARIFY":
-        updates.update({"needs_clarification": True, "next_step": "orchestrator"})
-    else: # FAIL case
-        updates.update({"is_unsupported": True, "next_step": "orchestrator"})
+        updates["next_step"] = "orchestrator"
+        updates["needs_clarification"] = True
+        
+    else:  # FAIL or unrecognized action
+        updates["next_step"] = "orchestrator"
+        updates["is_unsupported"] = True
+
+    return updates
 
     return updates
 

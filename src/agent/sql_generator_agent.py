@@ -30,7 +30,7 @@ def _clean_sql_output(sql: str) -> str:
     return sql.strip()
 
 
-def generate_sql_from_nlq(user_question: str) -> str:
+def generate_sql_from_nl(user_question: str) -> str:
     """
     Generates SQL query from natural language question.
     
