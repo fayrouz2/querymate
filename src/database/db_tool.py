@@ -1,13 +1,3 @@
-# db_tool_node.py
-# DB Tool as a LangGraph node (asyncpg) — deterministic hard gate.
-# - Validates: SELECT-only, no forbidden ops, single statement
-# - Runs: EXPLAIN (FORMAT JSON)
-# - Executes only if EXPLAIN passes
-# - Enforces: timeouts + max rows (via wrapper LIMIT)
-# - Returns: fixed JSON envelope + structured errors
-#
-# Works well with FastAPI async + LangGraph async graphs.
-
 from __future__ import annotations
 
 import re
@@ -219,64 +209,64 @@ class SupabaseDBToolAsync:
 # LangGraph State + Node
 # =========================
 
-class GraphState(TypedDict, total=False):
-    # Inputs / outputs shared in the graph
-    sql: str # is overwritten by NL→SQL or Repair Agent
-    db_result: Dict[str, Any] # is written ONLY by DB Tool
+# class GraphState(TypedDict, total=False):
+#     # Inputs / outputs shared in the graph
+#     sql: str # is overwritten by NL→SQL or Repair Agent
+#     db_result: Dict[str, Any] # is written ONLY by DB Tool
 
-    # Repair loop control
-    repair_count: int # prevents infinite loops
-    max_repairs: int
+#     # Repair loop control
+#     repair_count: int # prevents infinite loops
+#     max_repairs: int
 
-    # You can keep these if you want:
-    last_error: Dict[str, Any]   # copy of db_result["error"] when ok=False
+#     # You can keep these if you want:
+#     last_error: Dict[str, Any]   # copy of db_result["error"] when ok=False
 
 
-def make_db_execute_node(db_tool: SupabaseDBToolAsync):
-    """
-    Factory so you can inject the running db_tool instance into the node.
-    Use as a node in LangGraph: add_node("db_execute", make_db_execute_node(db_tool))
-    """
+# def make_db_execute_node(db_tool: SupabaseDBToolAsync):
+#     """
+#     Factory so you can inject the running db_tool instance into the node.
+#     Use as a node in LangGraph: add_node("db_execute", make_db_execute_node(db_tool))
+#     """
 
-    async def db_execute_node(state: GraphState) -> GraphState:
-        sql = state.get("sql", "")
+#     async def db_execute_node(state: GraphState) -> GraphState:
+#         sql = state.get("sql", "")
 
-        # Ensure counters exist
-        if "repair_count" not in state:
-            state["repair_count"] = 0
-        if "max_repairs" not in state:
-            state["max_repairs"] = getattr(db_tool.cfg, "max_repairs", 2)
+#         # Ensure counters exist
+#         if "repair_count" not in state:
+#             state["repair_count"] = 0
+#         if "max_repairs" not in state:
+#             state["max_repairs"] = getattr(db_tool.cfg, "max_repairs", 2)
 
-        result = await db_tool.run_sql(sql)
-        state["db_result"] = result
+#         result = await db_tool.run_sql(sql)
+#         state["db_result"] = result
 
-        if not result.get("ok"):
-            state["last_error"] = result.get("error") or {}
-        else:
-            state.pop("last_error", None)
+#         if not result.get("ok"):
+#             state["last_error"] = result.get("error") or {}
+#         else:
+#             state.pop("last_error", None)
 
-        return state
+#         return state
 
-    return db_execute_node
+#     return db_execute_node
 
 
 # =========================
 # Routing helpers (LangGraph)
 # =========================
 
-def route_after_db(state: GraphState) -> str:
-    """
-    Conditional edge router after DB execution.
-    Returns one of: "viz" | "repair" | "stop"
-    """
-    db_result = state.get("db_result") or {}
-    if db_result.get("ok") is True:
-        return "viz"
+# def route_after_db(state: GraphState) -> str:
+#     """
+#     Conditional edge router after DB execution.
+#     Returns one of: "viz" | "repair" | "stop"
+#     """
+#     db_result = state.get("db_result") or {}
+#     if db_result.get("ok") is True:
+#         return "viz"
 
-    # If failed, check retry budget
-    repair_count = int(state.get("repair_count", 0))
-    max_repairs = int(state.get("max_repairs", 2))
-    if repair_count >= max_repairs:
-        return "stop"
+#     # If failed, check retry budget
+#     repair_count = int(state.get("repair_count", 0))
+#     max_repairs = int(state.get("max_repairs", 2))
+#     if repair_count >= max_repairs:
+#         return "stop"
 
-    return "repair"
+#     return "repair"

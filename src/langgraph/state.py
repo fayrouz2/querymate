@@ -47,8 +47,9 @@ class VizPlannerState(TypedDict, total=False):
     # Inputs that your teammate might pass in later
     question: str            # user's question in NL
     sql_query: str           # SQL used (optional)
-    columns: List[str]       # column names from result (optional)
-    sample_rows: List[dict]  # small sample of rows (optional)
+    db_result: Dict[str, Any] # NEW: DB tool envelope
+    #columns: List[str]       # column names from result (optional)
+    #sample_rows: List[dict]  # small sample of rows (optional)
 
     # Output of this agent
     viz_plan: str
@@ -75,3 +76,15 @@ class AgentState(TypedDict):
     
     # Routing
     next_step: str # Determines the next node in the graph
+
+class GraphState(TypedDict, total=False):
+    # Inputs / outputs shared in the graph
+    sql: str # is overwritten by NL→SQL or Repair Agent
+    db_result: Dict[str, Any] # is written ONLY by DB Tool
+
+    # Repair loop control
+    repair_count: int # prevents infinite loops
+    max_repairs: int
+
+    # You can keep these if you want:
+    last_error: Dict[str, Any]   # copy of db_result["error"] when ok=False

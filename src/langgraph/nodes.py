@@ -15,6 +15,12 @@ import json
 from src.metadata.data_dictionary import DATA_DICTIONARY
 from src.agent.prompts import REPAIR_SYSTEM_PROMPT
 from src.agent.sql_validator_agent import repair_reasoning_engine
+from src.database.db_tool import SupabaseDBToolAsync
+from src.langgraph.state import GraphState
+
+from typing import Dict, Any
+
+from src.database.extract_db_result_preview import _extract_columns_and_sample_rows
 
 def orchestrator_node(state: AgentState):
     """
@@ -85,52 +91,131 @@ def sql_generator_node(state):
         "next_step": "db_tool"
     }
 
- 
-
-def visualization_planner_node(state: VizPlannerState) -> dict:
+def visualization_planner_node(state: "VizPlannerState") -> dict:
     """
-    Node that generates a visualization plan using your VISUALIZATION_PLANNER_PROMPT.
-    Returns:
-      - messages: the AI response message (so it can be chained)
-      - viz_plan: extracted content for easy downstream use
+    Generates a visualization plan using VISUALIZATION_PLANNER_PROMPT.
+    Reads query results from DB Tool output: state["db_result"].
     """
 
-    # 1) Build the LLM (GPT)
+    # 0) Pull core fields
+    question = state.get("question", "") or ""
+    sql_query = state.get("sql_query", "") or ""
+
+    db_result = state.get("db_result")
+
+    # If DB tool didn't run or failed, do NOT crash.
+    # Usually the graph should route here only when ok=True,
+    # but we guard anyway (defensive programming).
+
+    '''
+    the return below 
+    This is returned to the LangGraph runtime, not to a human, not directly to another agent.
+
+    LangGraph will:
+
+    1. Merge this into the shared state
+    2. Then decide what node runs next based on your graph routing
+
+    '''
+    if not db_result:
+        return {
+            "viz_plan": "NO_VIZ\nreason: db_result missing (DB tool did not run).",
+        } 
+
+    if not db_result.get("ok"):
+        # You can choose: either return a "no viz" plan or include error summary
+        err = db_result.get("error") or {}
+        return {
+            "viz_plan": (
+                "NO_VIZ\n"
+                f"reason: db_error\n"
+                f"error_type: {err.get('type')}\n"
+                f"message: {err.get('message')}"
+            )
+        }
+
+    # 1) Extract columns + sample rows from db_result
+    columns, sample_rows = _extract_columns_and_sample_rows(db_result, max_sample=10)
+
+    # 2) Build LLM
     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
 
-    # 2) System prompt (your prompt)
+    # 3) System prompt
     system = SystemMessage(content=VISUALIZATION_PLANNER_PROMPT)
 
-    # 3) Build a clear user payload from available state fields
-    question = state.get("question", "")
-    sql_query = state.get("sql_query", "")
-    columns = state.get("columns", [])
-    sample_rows = state.get("sample_rows", [])
+    # 4) User payload (now grounded in db_result)
+    # Optional: include row_count to help decide if aggregation is needed.
+    row_count = (db_result.get("data") or {}).get("row_count")
 
     user_payload = (
         f"User question:\n{question}\n\n"
-        f"SQL query (if available):\n{sql_query}\n\n"
-        f"Columns (if available):\n{columns}\n\n"
-        f"Sample rows (if available):\n{sample_rows}\n\n"
+        f"SQL query:\n{sql_query}\n\n"
+        f"Result columns:\n{columns}\n\n"
+        f"Row count:\n{row_count}\n\n"
+        f"Sample rows (up to 10):\n{sample_rows}\n\n"
         "Return ONLY the visualization plan as the final answer."
     )
 
     human = HumanMessage(content=user_payload)
 
-    # 4) If there are already messages in the state, keep them
-    #    but always include system prompt first.
+    # 5) Keep prior messages if present (system always first)
     prior_messages = state.get("messages") or []
     messages = [system] + prior_messages + [human]
 
-    # 5) Call the model
+    # 6) Call model
     response = llm.invoke(messages)
 
-    # 6) Return updates to the graph state
+    # 7) Update state
     return {
         "messages": [response],
         "viz_plan": response.content,
     }
+
+# def visualization_planner_node(state: VizPlannerState) -> dict:
+#     """
+#     Node that generates a visualization plan using your VISUALIZATION_PLANNER_PROMPT.
+#     Returns:
+#       - messages: the AI response message (so it can be chained)
+#       - viz_plan: extracted content for easy downstream use
+#     """
+
+#     # 1) Build the LLM (GPT)
+#     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+#     llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
+
+#     # 2) System prompt (your prompt)
+#     system = SystemMessage(content=VISUALIZATION_PLANNER_PROMPT)
+
+#     # 3) Build a clear user payload from available state fields
+#     question = state.get("question", "")
+#     sql_query = state.get("sql_query", "")
+#     columns = state.get("columns", [])
+#     sample_rows = state.get("sample_rows", [])
+
+#     user_payload = (
+#         f"User question:\n{question}\n\n"
+#         f"SQL query (if available):\n{sql_query}\n\n"
+#         f"Columns (if available):\n{columns}\n\n"
+#         f"Sample rows (if available):\n{sample_rows}\n\n"
+#         "Return ONLY the visualization plan as the final answer."
+#     )
+
+#     human = HumanMessage(content=user_payload)
+
+#     # 4) If there are already messages in the state, keep them
+#     #    but always include system prompt first.
+#     prior_messages = state.get("messages") or []
+#     messages = [system] + prior_messages + [human]
+
+#     # 5) Call the model
+#     response = llm.invoke(messages)
+
+#     # 6) Return updates to the graph state
+#     return {
+#         "messages": [response],
+#         "viz_plan": response.content,
+#     }
 
 
 def visualization_code_generator_node(state):
@@ -158,7 +243,6 @@ def visualization_code_generator_node(state):
         "messages": [response],
         "viz_code": response.content.strip()
     }
-
 
 
 
@@ -208,3 +292,31 @@ def sql_repair_node(state: AgentState):
         updates.update({"is_unsupported": True, "next_step": "orchestrator"})
 
     return updates
+
+
+def make_db_execute_node(db_tool: SupabaseDBToolAsync):
+    """
+    Factory so you can inject the running db_tool instance into the node.
+    Use as a node in LangGraph: add_node("db_execute", make_db_execute_node(db_tool))
+    """
+
+    async def db_execute_node(state: GraphState) -> GraphState:
+        sql = state.get("sql_query", "")
+
+        # Ensure counters exist
+        if "repair_count" not in state:
+            state["repair_count"] = 0
+        if "max_repairs" not in state:
+            state["max_repairs"] = getattr(db_tool.cfg, "max_repairs", 2)
+
+        result = await db_tool.run_sql(sql)
+        state["db_result"] = result
+
+        if not result.get("ok"):
+            state["last_error"] = result.get("error") or {}
+        else:
+            state.pop("last_error", None)
+
+        return state
+
+    return db_execute_node
