@@ -84,6 +84,42 @@ class GraphState(TypedDict, total=False):
 
 ######## 
 
+# from typing import Annotated, List, TypedDict, Optional, Dict, Any
+# from langchain_core.messages import BaseMessage
+# from langgraph.graph.message import add_messages
+# import operator
+
+# class AgentState(TypedDict):
+#     """
+#     The unified state for the QueryMate project. 
+#     This shared dictionary is the 'single source of truth' for all agents.
+#     """
+#     # --- 1. Core Conversation History ---
+#     messages: Annotated[List[BaseMessage], add_messages]
+#     next_step: str  # Controls the graph routing logic
+    
+#     # --- 2. SQL & Database Data ---
+#     sql_query: Optional[str]  # The SQL generated or repaired
+#     db_result: Optional[Dict[str, Any]]  # Stores your ok_envelope or err_envelope
+    
+#     # --- 3. Repair Loop Control (Matches your DB Tool) ---
+#     repair_count: int  # Current attempt number
+#     max_repairs: int   # Usually set to 2 or 3
+    
+#     # --- 4. Logic & Orchestrator Flags ---
+#     is_valid: Optional[bool]      # Used for syntax validation
+#     needs_clarification: bool     # True if AI is confused by user intent
+#     is_unsupported: bool          # True if request is dangerous/out of scope
+#     feedback_reason: Optional[str] # The 'Internal Memo' from Repair to Orchestrator
+    
+#     # --- 5. Visualization & UI Data ---
+#     viz_plan: Optional[str]       # The logical plan for the chart
+#     viz_code: Optional[str]       # The actual Python/Plotly code generated
+#     columns: Optional[List[str]]  # Column names for the UI
+#     sample_rows: Optional[List[dict]] # Data rows for the UI table
+
+########last version
+
 from typing import Annotated, List, TypedDict, Optional, Dict, Any
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
@@ -94,26 +130,41 @@ class AgentState(TypedDict):
     The unified state for the QueryMate project. 
     This shared dictionary is the 'single source of truth' for all agents.
     """
-    # --- 1. Core Conversation History ---
+    # --- 1. Core Conversation & Routing ---
+    # messages: Stores history and uses add_messages to append new messages
     messages: Annotated[List[BaseMessage], add_messages]
-    next_step: str  # Controls the graph routing logic
+    # next_step: The crucial routing variable used by your conditional edges
+    next_step: str 
     
     # --- 2. SQL & Database Data ---
-    sql_query: Optional[str]  # The SQL generated or repaired
-    db_result: Optional[Dict[str, Any]]  # Stores your ok_envelope or err_envelope
+    # sql_query: The current SQL string (Generated or Repaired)
+    sql_query: Optional[str]  
+    # db_result: The JSON envelope (ok/error) returned by SupabaseDBToolAsync
+    db_result: Optional[Dict[str, Any]] 
+    # last_error: A helper field to store specific error details for the UI
+    last_error: Optional[Dict[str, Any]]
     
-    # --- 3. Repair Loop Control (Matches your DB Tool) ---
-    repair_count: int  # Current attempt number
-    max_repairs: int   # Usually set to 2 or 3
+    # --- 3. Repair Loop Control (Synced with DB Tool Config) ---
+    # repair_count: Current attempt (0, 1, 2, 3)
+    repair_count: int  
+    # max_repairs: Total allowed attempts before the 'Circuit Breaker' stops the loop
+    max_repairs: int   
     
     # --- 4. Logic & Orchestrator Flags ---
-    is_valid: Optional[bool]      # Used for syntax validation
-    needs_clarification: bool     # True if AI is confused by user intent
-    is_unsupported: bool          # True if request is dangerous/out of scope
-    feedback_reason: Optional[str] # The 'Internal Memo' from Repair to Orchestrator
+    # is_valid: General syntax check flag
+    is_valid: Optional[bool]      
+    # needs_clarification: True if the Agent needs to ask the user a question
+    needs_clarification: bool     
+    # is_unsupported: True for Policy Violations or unfixable errors
+    is_unsupported: bool          
+    # feedback_reason: The technical explanation passed from agents to Orchestrator
+    feedback_reason: Optional[str] 
     
     # --- 5. Visualization & UI Data ---
-    viz_plan: Optional[str]       # The logical plan for the chart
-    viz_code: Optional[str]       # The actual Python/Plotly code generated
-    columns: Optional[List[str]]  # Column names for the UI
-    sample_rows: Optional[List[dict]] # Data rows for the UI table
+    # viz_plan: The high-level description of the chart (Bar, Line, etc.)
+    viz_plan: Optional[str]       
+    # viz_code: The final Python/Plotly code to be executed in the UI
+    viz_code: Optional[str]       
+    # columns/sample_rows: Extracted from db_result for easy UI rendering
+    columns: Optional[List[str]]  
+    sample_rows: Optional[List[dict]]
