@@ -1,126 +1,111 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
-import time
-
-
-
+import requests
+import plotly.express as px
 
 st.set_page_config(page_title="QueryMate", layout="wide")
 
 st.title("QueryMate")
 st.caption("Ask questions and get answers directly from the database")
 
-
+# Initialize session state
 if "history" not in st.session_state:
-    st.session_state.history = []  
+    st.session_state.history = []
 
 if "last_result" not in st.session_state:
     st.session_state.last_result = None
 
-
-
+# =========================
+# Sidebar Chat
+# =========================
 with st.sidebar:
     st.header("QueryMate Assistant")
 
-
-    
+    # Display chat history
     for msg in st.session_state.history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-
+    # Input box
     user_input = st.chat_input("Ask about the data...")
 
-
+# =========================
+# Handle user input
+# =========================
 if user_input:
+    # Save user message
+    st.session_state.history.append({"role": "user", "content": user_input})
 
-    st.session_state.history.append({
-        "role": "user",
-        "content": user_input
-    })
+    with st.sidebar:
+        assistant_placeholder = st.empty()
 
+    with assistant_placeholder.container():
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                # Call FastAPI backend
+                try:
+                    response = requests.post(
+                                "http://127.0.0.1:8000/chat",
+                                json={"message": user_input, "thread_id": "session_001"}, 
+                                timeout=60
+                            )
 
-    with st.spinner("Thinking..."):
-        time.sleep(1)
+                    response.raise_for_status()
+                    result = response.json()
+                except requests.exceptions.RequestException as e:
+                    st.error(f"API Error: {e}")
+                    st.stop()
 
-        #chat agent placeholder
-        conv_result = {
-            "status": "success",
-            "action": "query_db",
-            "target_question": user_input,
-            "chart": "bar"
-        }
-
-        #text to sql agent placeholder
-        sql_result = {
-            "status": "success",
-            "sql": "SELECT ProductName, SUM(SalesAmount) AS TotalSales FROM SalesTable "
-                   "GROUP BY ProductName ORDER BY TotalSales DESC LIMIT 5;",
-            "columns": ["Product", "total_sales"],
-            "rows": [
-                ["K", 40],
-                ["M", 35],
-                ["B", 35],
-                ["L", 34],
-                ["A", 30]
-            ],
-            "error_message": None,
-            "chart": conv_result["chart"]
-        }
-
-       
-        df = pd.DataFrame(sql_result["rows"], columns=sql_result["columns"])
-
-        #vis planer placeholder
-        viz_plan = {
-            "visualize": True,
-            "chart_type": "bar",
-            "x_axis": {"column": "total_sales", "label": "Total Sales"},
-            "y_axis": {"column": "Product", "aggregation": "sum", "label": "Product"},
-            "group_by": None,
-            "title": "Top Products by Sales"
-        }
+                # Extract results
+                answer = result.get("reply", "Here are your results.")
+                sql_query = result.get("sql_query")
+                columns = result.get("columns")
+                rows = result.get("sample_rows")  # matches FastAPI
+                viz_code = result.get("viz_code")
 
 
-        #temp viz
-        import plotly.express as px
-        fig = px.bar(
-            df,
-            x=viz_plan["x_axis"]["column"],
-            y=viz_plan["y_axis"]["column"],
-            orientation="h",
-            title=viz_plan["title"]
-        )
+                df = pd.DataFrame(rows, columns=columns) if columns and rows else None
+                fig = None
 
-        st.session_state.last_result = {
-            "question": user_input,
-            "df": df,
-            "sql": sql_result["sql"],
-            "fig": fig,
-            "answer": "Here are the results for your query:"
-        }
+                # Execute visualization code safely
+                if viz_code and df is not None:
+                    st.code(viz_code, language="python")  # optional debug
+                    try:
+                        local_vars = {"df": df, "px": px}
+                        exec(viz_code, {"__builtins__": {}}, local_vars)
+                        fig = local_vars.get("fig")
+                        if fig is None:
+                            st.warning("Visualization code did not produce a figure.")
+                    except Exception as e:
+                        st.warning(f"Visualization failed: {e}")
 
-        assistant_reply = "here are the results" #replace with chat agent reply
+                # Save last result
+                st.session_state.last_result = {
+                    "question": user_input,
+                    "df": df,
+                    "sql": sql_query,
+                    "fig": fig,
+                    "answer": answer
+                }
 
-        st.session_state.history.append({
-            "role": "assistant",
-            "content": assistant_reply 
-        })
+                # Append AI reply
+                st.session_state.history.append({"role": "assistant", "content": answer})
+                st.rerun()
 
-        st.rerun()
-        
-
-
-
-if st.session_state.last_result is not None:
+# =========================
+# Main panel: Results
+# =========================
+if st.session_state.last_result:
     result = st.session_state.last_result
 
     st.subheader("Query Results")
     st.write(result["answer"])
 
     with st.expander("Show SQL Query"):
-        st.code(result["sql"], language="sql")
+        if result["sql"]:
+            st.code(result["sql"], language="sql")
+        else:
+            st.info("No SQL query available.")
 
     tab1, tab2 = st.tabs(["Dataframe", "Chart"])
 

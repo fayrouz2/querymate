@@ -1,4 +1,4 @@
-from metadata.data_dictionary import DICT_PROMPT
+from src.metadata.data_dictionary import DICT_PROMPT
 
 NLQ_TO_SQL_PROMPT = """
 Act as a senior data analyst who is an expert in Natural Language Query (NLQ) to SQL generation. Your task is to convert natural language questions into accurate, executable SQL queries for a PostgreSQL database.
