@@ -16,7 +16,7 @@ def repair_reasoning_engine(intent: str, sql: str, error_info: dict, dictionary:
 
     # Add model_kwargs to enforce JSON response from OpenAI
     llm = ChatOpenAI(
-        model="gpt-4o-mini", 
+        model="gpt-4o",
         temperature=0,
         model_kwargs={"response_format": {"type": "json_object"}} 
     )
