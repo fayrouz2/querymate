@@ -3,7 +3,7 @@ from langchain_core.messages import SystemMessage
 from src.agent.prompts import NLQ_TO_SQL_PROMPT
 from src.config import OPENAI_API_KEY
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, openai_api_key=OPENAI_API_KEY)
+llm = ChatOpenAI(model="gpt-4o", temperature=0, openai_api_key=OPENAI_API_KEY)
 
 
 def _clean_sql_output(sql: str) -> str:
