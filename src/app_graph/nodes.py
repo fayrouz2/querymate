@@ -27,6 +27,13 @@ def orchestrator_node(state: AgentState):
     """
     The Orchestrator: Controls the flow based on Repair Agent feedback.
     """
+
+    # ✅ SUCCESS GUARD — must be FIRST
+    if (state.get("db_result") or {}).get("ok") and state.get("viz_code"):
+        return {
+            "next_step": "end"
+        }
+
     if state.get("needs_clarification"):
         feedback = state.get("feedback_reason", "Could you provide more details?")
         return {
@@ -208,6 +215,7 @@ def sql_generator_node(state):
 
     # Generate SQL from NL
     sql_query = generate_sql_from_nl(user_message)
+    sql_query = (sql_query or "").strip().rstrip(";")
 
     return {
         "sql_query": sql_query,
@@ -307,6 +315,8 @@ def visualization_planner_node(state: "VizPlannerState") -> dict:
     return {
         "messages": [response],
         "viz_plan": response.content,
+        "columns": columns,
+        "sample_rows": sample_rows,
     }
 
 #
@@ -411,6 +421,11 @@ def visualization_code_generator_node(state):
 
     viz_plan = state.get("viz_plan", "")
     sample_rows = state.get("sample_rows", [])
+    
+    # ✅ ADD IT HERE
+    print("ROWS:", len(sample_rows))
+    print("COLUMNS:", state.get("columns"))  # optional
+
     df_preview = sample_rows[:5] if sample_rows else []
 
     prompt = VISUALIZATION_CODE_PROMPT.format(
@@ -433,13 +448,13 @@ def visualization_code_generator_node(state):
 
 
 
-
+# changed repair_ateempts to repair_count
 def sql_repair_node(state: AgentState):
     """
     SQL Repair Node: Analyzes DB errors and decides the next step based on the Dictionary.
     """
     db_result = state.get("db_result")
-    attempt = state.get("repair_attempt", 0)
+    attempt = state.get("repair_count", 0)
     
     if attempt >= 3:
         return {
@@ -471,8 +486,8 @@ def sql_repair_node(state: AgentState):
     if action == "REPAIR":
         updates.update({
             "sql_query": decision.get("repaired_sql"),
-            "repair_attempt": attempt + 1,
-            "next_step": "db_tool"
+            "repair_count": attempt + 1,
+            "next_step": "db_execute"
         })
     elif action == "CLARIFY":
         updates.update({"needs_clarification": True, "next_step": "orchestrator"})
@@ -569,6 +584,7 @@ def sql_repair_node(state: AgentState):
 
 import asyncio
 
+'''
 def make_db_execute_node(db_tool: SupabaseDBToolAsync):
     """
     Factory to inject the async db_tool into a synchronous LangGraph node.
@@ -582,7 +598,6 @@ def make_db_execute_node(db_tool: SupabaseDBToolAsync):
             state["repair_count"] = 0
         if "max_repairs" not in state:
             state["max_repairs"] = getattr(db_tool.cfg, "max_repairs", 2)
-
         # --- SYNC BRIDGE ---
         # Because db_tool.run_sql is async and this node is sync, 
         # we must force it to run and wait for the result.
@@ -598,10 +613,54 @@ def make_db_execute_node(db_tool: SupabaseDBToolAsync):
             # If no loop exists at all (standard for simple sync main.py), we create a new one
             result = asyncio.run(db_tool.run_sql(sql))
         # --------------------
+        state["db_result"] = result
+        
+        print("DB_OK:", result.get("ok"))
+        print("DB_ERROR:", result.get("error"))
+
+        if result.get("ok"):
+            data = result.get("data") or {}
+            state["columns"] = data.get("columns", [])
+            state["sample_rows"] = data.get("rows", [])[:20]
+
+
+        # Now 'result' is a real dictionary, so .get() will work!
+        if not result.get("ok"):
+            state["last_error"] = result.get("error") or {}
+        else:
+            state.pop("last_error", None)
+
+        return state
+
+    return db_execute_node
+'''
+
+def make_db_execute_node(db_tool: SupabaseDBToolAsync):
+
+    async def db_execute_node(state: AgentState) -> AgentState:
+        sql = state.get("sql_query", "") or ""
+
+        # Ensure counters exist
+        if "repair_count" not in state:
+            state["repair_count"] = 0
+        if "max_repairs" not in state:
+            state["max_repairs"] = getattr(db_tool.cfg, "max_repairs", 2)
+
+        # ✅ Run the async DB call properly (NO sync bridge)
+        result = await db_tool.run_sql(sql)
 
         state["db_result"] = result
 
-        # Now 'result' is a real dictionary, so .get() will work!
+        print("DB_OK:", result.get("ok"))
+        print("DB_ERROR:", result.get("error"))
+
+        # ✅ Hydrate UI fields
+        if result.get("ok"):
+            data = result.get("data") or {}
+            state["columns"] = data.get("columns", [])
+            state["sample_rows"] = (data.get("rows") or [])[:20]
+
+        # last_error helper
         if not result.get("ok"):
             state["last_error"] = result.get("error") or {}
         else:

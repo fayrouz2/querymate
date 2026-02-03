@@ -44,7 +44,16 @@ async def chat(req: ChatRequest):
         "messages": [HumanMessage(content=req.message)],
         "repair_count": 0,
         "max_repairs": 3,
-        "next_step": ""
+        "next_step": "",
+        "db_result": None,
+        "viz_code": None,
+        "viz_plan": None,
+        "columns": [],
+        "sample_rows": [],
+        "needs_clarification": False,
+        "is_unsupported": False,
+        "feedback_reason": None,
+        "last_error": None,
     }
 
     config = {
@@ -52,7 +61,9 @@ async def chat(req: ChatRequest):
         "recursion_limit": 40
     }
 
-    result = graph.invoke(initial_state, config=config)
+    #result = graph.invoke(initial_state, config=config)
+    result = await graph.ainvoke(initial_state, config=config)
+
 
     # Extract assistant message
     final_msg = result["messages"][-1].content
