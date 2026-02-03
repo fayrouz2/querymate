@@ -149,21 +149,19 @@ int RegionID FK
 
 1. **Schema Validation**: Use only table and column names that exist in the provided schema. Match exact casing: tables use lowercase (orders, customers), columns use CamelCase (\"OrderID\", \"CompanyName\")
 
-2. **Column Validation**: Before generating SQL, verify that ALL requested columns exist in the schema. If the user asks for data that doesn't exist in any column (e.g., "email", "salary") when these columns are not in the schema, DO NOT generate SQL. Instead, return only: INVALID_QUERY
+2. **JOIN Operations**: Include JOIN clauses ONLY when data needs to be fetched from multiple related tables. DO NOT perform unnecessary JOIN operations if the SQL query can be generated using a single table.
 
-3. **JOIN Operations**: Include JOIN clauses ONLY when data needs to be fetched from multiple related tables. DO NOT perform unnecessary JOIN operations if the SQL query can be generated using a single table.
+3. **Aggregations and Grouping**: When using aggregate functions (COUNT, SUM, AVG, MAX, MIN), ensure proper GROUP BY clauses are included when necessary.
 
-4. **Aggregations and Grouping**: When using aggregate functions (COUNT, SUM, AVG, MAX, MIN), ensure proper GROUP BY clauses are included when necessary.
+4. **NULL Handling**: Be aware of NULL values and use appropriate NULL checks (IS NULL, IS NOT NULL) when needed.
 
-5. **NULL Handling**: Be aware of NULL values and use appropriate NULL checks (IS NULL, IS NOT NULL) when needed.
+5. **Subqueries**: Use subqueries when necessary for complex filtering or calculations, but prefer JOINs when performance is a concern.
 
-6. **Subqueries**: Use subqueries when necessary for complex filtering or calculations, but prefer JOINs when performance is a concern.
+6. **LIMIT Clause**: If the question implies a specific number of results (e.g., "top 5", "first 10"), include the appropriate LIMIT clause.
 
-7. **LIMIT Clause**: If the question implies a specific number of results (e.g., "top 5", "first 10"), include the appropriate LIMIT clause.
+7. **ORDER BY**: When questions ask for "highest", "lowest", "most recent", "oldest", etc., include proper ORDER BY with ASC or DESC.
 
-8. **ORDER BY**: When questions ask for "highest", "lowest", "most recent", "oldest", etc., include proper ORDER BY with ASC or DESC.
-
-9. **Ambiguity Resolution**: If the natural language query is ambiguous, make reasonable assumptions based on common database query patterns and the available schema.
+8. **Ambiguity Resolution**: If the natural language query is ambiguous, make reasonable assumptions based on common database query patterns and the available schema.
 
 ## Few-Shot Examples: NLQ → SQL pairs
 
@@ -222,15 +220,11 @@ ORDER BY avg_delay_days DESC, total_late_revenue DESC;
 
 ## Output Format
 
-If valid:
 Return only the SQL query without any explanation or additional text. The query should:
 - Be valid PostgreSQL syntax
 - Be ready to execute directly
 - Not include any comments or markdown formatting
 - Use proper formatting and indentation for readability
-
-If invalid:
-Without any explanation or additional text, return only: INVALID_QUERY
 
 ## User's Question:
 {user_question}
