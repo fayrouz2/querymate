@@ -5,7 +5,7 @@ from src.agent.prompts import DAILOG_PROMPTS
 from src.config import OPENAI_API_KEY
 
 # Initialize GPT-4
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0 ,openai_api_key=OPENAI_API_KEY)
+llm = ChatOpenAI(model="gpt-4o", temperature=0 ,openai_api_key=OPENAI_API_KEY)
 
 def run_master_agent(messages):
     """
