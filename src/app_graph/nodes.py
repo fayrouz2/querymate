@@ -31,6 +31,7 @@ def orchestrator_node(state: AgentState):
     # ✅ SUCCESS GUARD — must be FIRST
     if (state.get("db_result") or {}).get("ok") and state.get("viz_code"):
         return {
+            "messages": [AIMessage(content="I've analyzed the data and generated a visualization for you below!")],
             "next_step": "end"
         }
 
@@ -436,13 +437,17 @@ def visualization_code_generator_node(state):
     system = SystemMessage(content="You generate Python Plotly visualization code only.")
     human = HumanMessage(content=prompt)
 
-    prior_messages = state.get("messages") or []
-    messages = [system] + prior_messages + [human]
+    # prior_messages = state.get("messages") or []
+    # messages = [system] + prior_messages + [human]
+    messages = [
+    SystemMessage(content="You generate ONLY clean Python Plotly code. No explanations, no markdown backticks."),
+    HumanMessage(content=prompt)
+    ]
 
     response = llm.invoke(messages)
 
     return {
-        "messages": [response],
+        # "messages": [response],
         "viz_code": response.content.strip()
     }
 
