@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import re
 import time
 from dataclasses import dataclass
@@ -116,23 +117,41 @@ def enforce_limit_wrapper(sql: str, max_rows: int) -> str:
 # Async DB Tool (pool)
 # =========================
 
+import asyncio
+import asyncpg
+import time
+from typing import Any, Dict, List, Optional
+
 class SupabaseDBToolAsync:
     def __init__(self, cfg: DBToolConfig):
         self.cfg = cfg
         self._pool: Optional[asyncpg.Pool] = None
+        self._lock = asyncio.Lock()  # Prevent multiple simultaneous pool reconnects
 
     async def start(self) -> None:
-        '''
-        - Async-safe
-        - Reused connections
-        - Required for FastAPI async
-        '''
-        self._pool = await asyncpg.create_pool(dsn=self.cfg.database_url, min_size=1, max_size=5)
+        """Initialize the pool."""
+        await self._create_pool()
+
+    async def _create_pool(self):
+        """Internal pool creation, with automatic SSL."""
+        self._pool = await asyncpg.create_pool(
+            dsn=self.cfg.database_url,
+            min_size=1,
+            max_size=5,
+            ssl="require",
+        )
 
     async def close(self) -> None:
+        """Close pool if exists."""
         if self._pool:
             await self._pool.close()
             self._pool = None
+
+    async def _ensure_pool(self):
+        """Check if pool exists, reconnect if necessary."""
+        async with self._lock:
+            if self._pool is None:
+                await self._create_pool()
 
     async def run_sql(self, sql: str) -> Dict[str, Any]:
         t0 = time.time()
@@ -148,125 +167,67 @@ class SupabaseDBToolAsync:
 
         final_sql = enforce_limit_wrapper(sql, self.cfg.max_rows) if self.cfg.enforce_limit else sql
 
-        if not self._pool: # We are trying to run a SQL query, but the DB connection was never initialized.
-            return err_envelope(
-                sql=final_sql,
-                error_type="INTERNAL_ERROR",
-                message="DB pool not started. Call db_tool.start() at app startup.",
-                execution_ms=int((time.time() - t0) * 1000),
-            )
+        for attempt in range(2):  # Retry once on connection issues
+            await self._ensure_pool()  # Make sure pool exists
+            try:
+                async with self._pool.acquire() as conn:
+                    async with conn.transaction():
+                        await conn.execute(f"SET LOCAL statement_timeout = {int(self.cfg.statement_timeout_ms)}")
+                        await conn.execute(f"SET LOCAL lock_timeout = {int(self.cfg.lock_timeout_ms)}")
+                        await conn.execute(f"SET LOCAL idle_in_transaction_session_timeout = {int(self.cfg.idle_in_tx_timeout_ms)}")
 
-        try:
-            async with self._pool.acquire() as conn:
-                # Server-side timeouts (per-transaction/local)
-                await conn.execute(f"SET LOCAL statement_timeout = {int(self.cfg.statement_timeout_ms)};")
-                await conn.execute(f"SET LOCAL lock_timeout = {int(self.cfg.lock_timeout_ms)};")
-                await conn.execute(f"SET LOCAL idle_in_transaction_session_timeout = {int(self.cfg.idle_in_tx_timeout_ms)};")
+                        explain_rows = await conn.fetch(f"EXPLAIN (FORMAT JSON) {final_sql}")
+                        explain_json = explain_rows[0]["QUERY PLAN"] if explain_rows else None
 
-                # 1) EXPLAIN (FORMAT JSON) — validates query without running it fully
-                explain_rows = await conn.fetch(f"EXPLAIN (FORMAT JSON) {final_sql}") # raises a PostgresError immediately, go to except
-                explain_json = explain_rows[0]["QUERY PLAN"] if explain_rows else None
+                        data_rows = await conn.fetch(final_sql)
 
-                # 2) Execute only if EXPLAIN passes
-                data_rows = await conn.fetch(final_sql)
+                        rows = [dict(r) for r in data_rows]
+                        columns = list(rows[0].keys()) if rows else []
+                        row_count = len(rows)
 
-                rows = [dict(r) for r in data_rows] # rows as dictionaries
-                columns = list(rows[0].keys()) if rows else [] # explicit column names
-                row_count = len(rows)
+                        ms = int((time.time() - t0) * 1000)
+                        return ok_envelope(
+                            sql=final_sql,
+                            columns=columns,
+                            rows=rows,
+                            row_count=row_count,
+                            execution_ms=ms,
+                            explain_json=explain_json,
+                        )
 
+            except asyncpg.exceptions.ConnectionDoesNotExistError as e:
+                # Pool / connection was closed, retry once
+                if attempt == 0:
+                    await self.close()
+                    await asyncio.sleep(0.1)
+                    continue
                 ms = int((time.time() - t0) * 1000)
-                return ok_envelope(
+                return err_envelope(
                     sql=final_sql,
-                    columns=columns,
-                    rows=rows,
-                    row_count=row_count,
+                    error_type="INTERNAL_ERROR",
+                    message=f"Connection lost: {e}",
                     execution_ms=ms,
-                    explain_json=explain_json,
+                )
+            except asyncpg.PostgresError as e:
+                ms = int((time.time() - t0) * 1000)
+                return err_envelope(
+                    sql=final_sql,
+                    error_type="SQL_ERROR",
+                    code=getattr(e, "sqlstate", None),
+                    message=str(e).strip(),
+                    hint=getattr(e, "hint", None),
+                    details=getattr(e, "detail", None),
+                    execution_ms=ms,
+                )
+            except Exception as e:
+                ms = int((time.time() - t0) * 1000)
+                return err_envelope(
+                    sql=final_sql,
+                    error_type="INTERNAL_ERROR",
+                    message=str(e),
+                    execution_ms=ms,
                 )
 
-        except asyncpg.PostgresError as e:
-            ms = int((time.time() - t0) * 1000)
-            return err_envelope(
-                sql=final_sql,
-                error_type="SQL_ERROR",
-                code=getattr(e, "sqlstate", None),
-                message=str(e).strip(),
-                hint=getattr(e, "hint", None),
-                details=getattr(e, "detail", None),
-                execution_ms=ms,
-            )
-        except Exception as e:
-            ms = int((time.time() - t0) * 1000)
-            return err_envelope(
-                sql=final_sql,
-                error_type="INTERNAL_ERROR",
-                message=str(e),
-                execution_ms=ms,
-            )
 
 
-# =========================
-# LangGraph State + Node
-# =========================
 
-# class GraphState(TypedDict, total=False):
-#     # Inputs / outputs shared in the graph
-#     sql: str # is overwritten by NL→SQL or Repair Agent
-#     db_result: Dict[str, Any] # is written ONLY by DB Tool
-
-#     # Repair loop control
-#     repair_count: int # prevents infinite loops
-#     max_repairs: int
-
-#     # You can keep these if you want:
-#     last_error: Dict[str, Any]   # copy of db_result["error"] when ok=False
-
-
-# def make_db_execute_node(db_tool: SupabaseDBToolAsync):
-#     """
-#     Factory so you can inject the running db_tool instance into the node.
-#     Use as a node in LangGraph: add_node("db_execute", make_db_execute_node(db_tool))
-#     """
-
-#     async def db_execute_node(state: GraphState) -> GraphState:
-#         sql = state.get("sql", "")
-
-#         # Ensure counters exist
-#         if "repair_count" not in state:
-#             state["repair_count"] = 0
-#         if "max_repairs" not in state:
-#             state["max_repairs"] = getattr(db_tool.cfg, "max_repairs", 2)
-
-#         result = await db_tool.run_sql(sql)
-#         state["db_result"] = result
-
-#         if not result.get("ok"):
-#             state["last_error"] = result.get("error") or {}
-#         else:
-#             state.pop("last_error", None)
-
-#         return state
-
-#     return db_execute_node
-
-
-# =========================
-# Routing helpers (LangGraph)
-# =========================
-
-# def route_after_db(state: GraphState) -> str:
-#     """
-#     Conditional edge router after DB execution.
-#     Returns one of: "viz" | "repair" | "stop"
-#     """
-#     db_result = state.get("db_result") or {}
-#     if db_result.get("ok") is True:
-#         return "viz"
-
-#     # If failed, check retry budget
-#     repair_count = int(state.get("repair_count", 0))
-#     max_repairs = int(state.get("max_repairs", 2))
-#     if repair_count >= max_repairs:
-#         return "stop"
-
-#     return "repair"
