@@ -172,7 +172,7 @@ def visualization_planner_node(state: "VizPlannerState") -> dict:
     columns, sample_rows = _extract_columns_and_sample_rows(db_result, max_sample=10)
 
     # 2) Build LLM
-    model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    model_name = os.getenv("OPENAI_MODEL", "gpt-4o")
     llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
 
     # 3) System prompt
