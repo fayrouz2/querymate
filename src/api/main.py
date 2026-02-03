@@ -52,7 +52,8 @@ async def chat(req: ChatRequest):
         "recursion_limit": 40
     }
 
-    result = graph.invoke(initial_state, config=config)
+    result = await graph.ainvoke(initial_state, config=config)
+
 
     # Extract assistant message
     final_msg = result["messages"][-1].content
