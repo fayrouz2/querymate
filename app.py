@@ -99,7 +99,7 @@ if st.session_state.last_result:
     result = st.session_state.last_result
 
     st.subheader("Query Results")
-    # st.write(result["answer"])
+    st.write(result["answer"])
 
     with st.expander("Show SQL Query"):
         if result["sql"]:
