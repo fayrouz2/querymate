@@ -137,6 +137,10 @@ class SupabaseDBToolAsync:
     async def run_sql(self, sql: str) -> Dict[str, Any]:
         t0 = time.time()
 
+        sql = (sql or "").strip()
+        sql = sql.rstrip(";").strip()
+
+
         ok, reason = validate_sql_policy(sql, self.cfg.allow_multi_statement)
         if not ok:
             return err_envelope(
