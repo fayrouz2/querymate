@@ -4,7 +4,6 @@ from langgraph.graph.message import add_messages
 import operator
 
 
-
 class AgentState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
     next_step: str        # Which node to execute next

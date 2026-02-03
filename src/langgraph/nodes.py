@@ -17,12 +17,13 @@ from src.agent.prompts import REPAIR_SYSTEM_PROMPT
 from src.agent.sql_validator_agent import repair_reasoning_engine
 from src.database.db_tool import SupabaseDBToolAsync
 from src.langgraph.state import GraphState
+from src.langgraph.state import SharedState
 
 from typing import Dict, Any
 
 from src.database.extract_db_result_preview import _extract_columns_and_sample_rows
 
-def orchestrator_node(state: AgentState):
+def orchestrator_node(state: SharedState):
     """
     The Orchestrator: Controls the flow based on Repair Agent feedback.
     """
@@ -75,7 +76,7 @@ def orchestrator_node(state: AgentState):
     }
 
 
-def sql_generator_node(state):
+def sql_generator_node(state: SharedState):
     """
     SQL Generator Node:
     Takes the latest user question and generates SQL.
@@ -91,14 +92,14 @@ def sql_generator_node(state):
         "next_step": "db_tool"
     }
 
-def visualization_planner_node(state: "VizPlannerState") -> dict:
+def visualization_planner_node(state: SharedState) -> dict:
     """
     Generates a visualization plan using VISUALIZATION_PLANNER_PROMPT.
     Reads query results from DB Tool output: state["db_result"].
     """
 
     # 0) Pull core fields
-    question = state.get("question", "") or ""
+    #question = state.get("question", "") or ""
     sql_query = state.get("sql_query", "") or ""
 
     db_result = state.get("db_result")
@@ -149,7 +150,7 @@ def visualization_planner_node(state: "VizPlannerState") -> dict:
     row_count = (db_result.get("data") or {}).get("row_count")
 
     user_payload = (
-        f"User question:\n{question}\n\n"
+        #f"User question:\n{question}\n\n"
         f"SQL query:\n{sql_query}\n\n"
         f"Result columns:\n{columns}\n\n"
         f"Row count:\n{row_count}\n\n"
@@ -218,7 +219,7 @@ def visualization_planner_node(state: "VizPlannerState") -> dict:
 #     }
 
 
-def visualization_code_generator_node(state):
+def visualization_code_generator_node(state: SharedState):
     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
 
@@ -246,7 +247,7 @@ def visualization_code_generator_node(state):
 
 
 
-def sql_repair_node(state: AgentState):
+def sql_repair_node(state: SharedState):
     """
     SQL Repair Node: Analyzes DB errors and decides the next step based on the Dictionary.
     """
@@ -300,12 +301,12 @@ def make_db_execute_node(db_tool: SupabaseDBToolAsync):
     Use as a node in LangGraph: add_node("db_execute", make_db_execute_node(db_tool))
     """
 
-    async def db_execute_node(state: GraphState) -> GraphState:
+    async def db_execute_node(state: SharedState) -> SharedState:
         sql = state.get("sql_query", "")
 
         # Ensure counters exist
-        if "repair_count" not in state:
-            state["repair_count"] = 0
+        if "repair_attempt" not in state:
+            state["repair_attempt"] = 0
         if "max_repairs" not in state:
             state["max_repairs"] = getattr(db_tool.cfg, "max_repairs", 2)
 
