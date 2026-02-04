@@ -5,10 +5,19 @@ from dotenv import load_dotenv
 from src.database.db_tool import SupabaseDBToolAsync, DBToolConfig
 from src.app_graph.workflow import build_querymate_workflow
 from langchain_core.messages import HumanMessage
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # For production, replace "*" with your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ---------- Request Model ----------
 class ChatRequest(BaseModel):
