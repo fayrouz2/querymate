@@ -13,23 +13,16 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    # 1. allow_origins is where your Frontend URL goes
     allow_origins=["https://querymate-frontend-production.up.railway.app"], 
     allow_credentials=True,
-    # 2. allow_methods should be the HTTP actions (usually ["*"] is fine)
     allow_methods=["*"], 
-    # 3. allow_headers should be the types of headers (usually ["*"] is fine)
     allow_headers=["*"],
 )
 
-
-# ---------- Request Model ----------
 class ChatRequest(BaseModel):
     message: str
     thread_id: str = "default"
 
-
-# ---------- Startup / Shutdown ----------
 @app.on_event("startup")
 async def startup_event():
     db_url = os.getenv("SUPABASE_DB_URL")
@@ -49,8 +42,6 @@ async def startup_event():
 async def shutdown_event():
     await app.state.db_tool.close()
 
-
-# ---------- Chat Endpoint ----------
 @app.post("/chat")
 async def chat(req: ChatRequest):
     graph = app.state.graph
@@ -76,11 +67,9 @@ async def chat(req: ChatRequest):
         "recursion_limit": 40
     }
 
-    #result = graph.invoke(initial_state, config=config)
     result = await graph.ainvoke(initial_state, config=config)
 
 
-    # Extract assistant message
     final_msg = result["messages"][-1].content
 
     return {

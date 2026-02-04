@@ -10,10 +10,8 @@ from typing import Dict, Any, List, Optional
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# Try to import from querymate config, fallback to env
 try:
     sys.path.insert(0, '/Users/shahad/Downloads/bootcamp/querymate')
     from src.config import OPENAI_API_KEY
@@ -126,7 +124,6 @@ Respond in JSON format:
                 "differences": List[str]
             }
         """
-        # Format results for display
         expected_str = self._format_result(expected_result)
         agent_str = self._format_result(agent_result)
 
@@ -221,7 +218,6 @@ Respond in JSON format:
             agent_sql
         )
 
-        # Overall score is weighted average (SQL: 40%, Results: 60%)
         overall_score = (sql_eval["score"] * 0.4) + (result_eval["score"] * 0.6)
         overall_correct = sql_eval["equivalent"] and result_eval["correct"]
 
@@ -247,22 +243,17 @@ Respond in JSON format:
             if len(result) == 0:
                 return "Empty result set (0 rows)"
 
-            # Format as a readable table
             if len(result) <= 10:
                 return json.dumps(result, indent=2, default=str)
             else:
-                # Show first 5 and last 5 for large results
                 sample = result[:5] + ["... {} more rows ...".format(len(result) - 10)] + result[-5:]
                 return json.dumps(sample, indent=2, default=str)
 
         return str(result)
 
-
-# Quick test
 if __name__ == "__main__":
     evaluator = LLMJudgeEvaluator()
 
-    # Test SQL evaluation
     print("Testing SQL Evaluation:")
     sql_result = evaluator.evaluate_sql_query(
         question="How many products are in our catalog?",
@@ -271,7 +262,6 @@ if __name__ == "__main__":
     )
     print(json.dumps(sql_result, indent=2))
 
-    # Test result evaluation
     print("\nTesting Result Evaluation:")
     result_eval = evaluator.evaluate_results(
         question="How many products are in our catalog?",

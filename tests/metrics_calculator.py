@@ -44,7 +44,6 @@ class MetricsCalculator:
         successful = sum(1 for r in self.results if r.get('sql_execution_success', False))
         success_rate = (successful / self.total * 100) if self.total > 0 else 0
 
-        # Categorize errors
         error_types = defaultdict(int)
         for r in self.results:
             if not r.get('sql_execution_success', False):
@@ -76,7 +75,6 @@ class MetricsCalculator:
         correct_count = sum(1 for r in self.results if r.get('result_accurate', False))
         accuracy = (correct_count / self.total * 100) if self.total > 0 else 0
 
-        # Score distribution
         score_distribution = defaultdict(int)
         total_score = 0
         comparison_methods = defaultdict(int)
@@ -200,7 +198,6 @@ class MetricsCalculator:
             if r.get('sql_execution_success', False):
                 categories[category]["executed"] += 1
 
-        # Calculate percentages
         for category, stats in categories.items():
             total = stats["total"]
             stats["accuracy"] = round((stats["correct"] / total * 100) if total > 0 else 0, 2)
@@ -226,7 +223,6 @@ class MetricsCalculator:
                     if r.get('sql_execution_success', False):
                         features[feature]["executed"] += 1
 
-        # Calculate percentages
         for feature, stats in features.items():
             total = stats["total"]
             stats["accuracy"] = round((stats["correct"] / total * 100) if total > 0 else 0, 2)
@@ -256,7 +252,6 @@ class MetricsCalculator:
                 if feature:
                     error_patterns["by_sql_feature"][feature] += 1
 
-            # Record common errors
             if r.get('attempts'):
                 last_attempt = r.get('attempts', [])[-1]
                 error_msg = last_attempt.get('status', '')
@@ -267,7 +262,6 @@ class MetricsCalculator:
                         "error": error_msg[:100]
                     })
 
-        # Convert defaultdicts to regular dicts
         error_patterns["by_difficulty"] = dict(error_patterns["by_difficulty"])
         error_patterns["by_category"] = dict(error_patterns["by_category"])
         error_patterns["by_sql_feature"] = dict(error_patterns["by_sql_feature"])
