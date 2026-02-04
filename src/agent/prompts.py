@@ -149,19 +149,21 @@ int RegionID FK
 
 1. **Schema Validation**: Use only table and column names that exist in the provided schema. Match exact casing: tables use lowercase (orders, customers), columns use CamelCase (\"OrderID\", \"CompanyName\")
 
-2. **JOIN Operations**: Include JOIN clauses ONLY when data needs to be fetched from multiple related tables. DO NOT perform unnecessary JOIN operations if the SQL query can be generated using a single table.
+2. **Column Validation**: If any requested column does not exist in the schema and cannot be derived via reasonable assumptions, the agent must not generate SQL and must return only: INVALID_QUERY
 
-3. **Aggregations and Grouping**: When using aggregate functions (COUNT, SUM, AVG, MAX, MIN), ensure proper GROUP BY clauses are included when necessary.
+3. **JOIN Operations**: Include JOIN clauses ONLY when data needs to be fetched from multiple related tables. DO NOT perform unnecessary JOIN operations if the SQL query can be generated using a single table.
 
-4. **NULL Handling**: Be aware of NULL values and use appropriate NULL checks (IS NULL, IS NOT NULL) when needed.
+4. **Aggregations and Grouping**: When using aggregate functions (COUNT, SUM, AVG, MAX, MIN), ensure proper GROUP BY clauses are included when necessary.
 
-5. **Subqueries**: Use subqueries when necessary for complex filtering or calculations, but prefer JOINs when performance is a concern.
+5. **NULL Handling**: Be aware of NULL values and use appropriate NULL checks (IS NULL, IS NOT NULL) when needed.
 
-6. **LIMIT Clause**: If the question implies a specific number of results (e.g., "top 5", "first 10"), include the appropriate LIMIT clause.
+6. **Subqueries**: Use subqueries when necessary for complex filtering or calculations, but prefer JOINs when performance is a concern.
 
-7. **ORDER BY**: When questions ask for "highest", "lowest", "most recent", "oldest", etc., include proper ORDER BY with ASC or DESC.
+7. **LIMIT Clause**: If the question implies a specific number of results (e.g., "top 5", "first 10"), include the appropriate LIMIT clause.
 
-8. **Ambiguity Resolution**: If the natural language query is ambiguous, make reasonable assumptions based on common database query patterns and the available schema.
+8. **ORDER BY**: When questions ask for "highest", "lowest", "most recent", "oldest", etc., include proper ORDER BY with ASC or DESC.
+
+10. **Ambiguity Resolution**: If the natural language query is ambiguous, make reasonable assumptions based on common database query patterns and the available schema.
 
 ## Few-Shot Examples: NLQ → SQL pairs
 
