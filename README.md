@@ -77,5 +77,4 @@ API Documentation: FastAPI Swagger UI
 
 2-uv sync
 
-### Run evalution:
-uv run python tests/evaluate_agent.py
+
