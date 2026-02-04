@@ -1,0 +1,599 @@
+{
+  "evaluations": [
+    {
+      "id": "tc_01",
+      "category": "simple",
+      "user_question": "Show me all available products that are not discontinued.",
+      "expected_sql": "SELECT * FROM \"products\" WHERE \"UnitsInStock\" > 0 AND \"Discontinued\" = '0';",
+      "ground_truth_tables": ["products"]
+    },
+    {
+      "id": "tc_02",
+      "category": "aggregation",
+      "user_question": "What is the total number of customers in each country?",
+      "expected_sql": "SELECT \"Country\", COUNT(*) AS total_customers FROM \"customers\" GROUP BY \"Country\";",
+      "ground_truth_tables": ["customers"]
+    },
+    {
+      "id": "tc_03",
+      "category": "join",
+      "user_question": "List product names and their corresponding category names.",
+      "expected_sql": "SELECT p.\"ProductName\", c.\"CategoryName\" FROM \"products\" p JOIN \"categories\" c ON p.\"CategoryID\" = c.\"CategoryID\";",
+      "ground_truth_tables": ["products", "categories"]
+    },
+    {
+      "id": "tc_04",
+      "category": "complex",
+      "user_question": "Show the top 5 customers by total revenue in 1997.",
+      "expected_sql": "SELECT c.\"CompanyName\", SUM(od.\"UnitPrice\" * od.\"Quantity\" * (1 - od.\"Discount\")) AS revenue FROM \"customers\" c JOIN \"orders\" o ON c.\"CustomerID\" = o.\"CustomerID\" JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" WHERE o.\"OrderDate\"::date BETWEEN '1997-01-01' AND '1997-12-31' GROUP BY c.\"CompanyName\" ORDER BY revenue DESC LIMIT 5;",
+      "ground_truth_tables": ["customers", "orders", "order_details"]
+    },
+    {
+      "id": "tc_05",
+      "category": "join",
+      "user_question": "Which shipping company has handled the most orders?",
+      "expected_sql": "SELECT s.\"CompanyName\", COUNT(o.\"OrderID\") AS order_count FROM \"shippers\" s JOIN \"orders\" o ON s.\"ShipperID\" = o.\"ShipVia\" GROUP BY s.\"CompanyName\" ORDER BY order_count DESC LIMIT 1;",
+      "ground_truth_tables": ["shippers", "orders"]
+    },
+    {
+      "id": "tc_11",
+      "category": "self_join",
+      "user_question": "List all employees and the name of the person they report to.",
+      "expected_sql": "SELECT e1.\"FirstName\" AS employee, e2.\"FirstName\" AS manager FROM \"employees\" e1 LEFT JOIN \"employees\" e2 ON e1.\"ReportsTo\" = e2.\"EmployeeID\";",
+      "ground_truth_tables": ["employees"]
+    },
+    {
+      "id": "tc_12",
+      "category": "multi_join",
+      "user_question": "Find the names of all employees working in the 'Western' region.",
+      "expected_sql": "SELECT DISTINCT e.\"FirstName\", e.\"LastName\" FROM \"employees\" e JOIN \"employee_territories\" et ON e.\"EmployeeID\" = et.\"EmployeeID\" JOIN \"territories\" t ON et.\"TerritoryID\" = t.\"TerritoryID\" JOIN \"regions\" r ON t.\"RegionID\" = r.\"RegionID\" WHERE r.\"RegionDescription\" = 'Western';",
+      "ground_truth_tables": ["employees", "employee_territories", "territories", "regions"]
+    },
+    {
+      "id": "tc_13",
+      "category": "aggregation",
+      "user_question": "Which category has the most expensive average product price?",
+      "expected_sql": "SELECT c.\"CategoryName\", AVG(p.\"UnitPrice\") AS avg_price FROM \"categories\" c JOIN \"products\" p ON c.\"CategoryID\" = p.\"CategoryID\" GROUP BY c.\"CategoryName\" ORDER BY avg_price DESC LIMIT 1;",
+      "ground_truth_tables": ["categories", "products"]
+    },
+    {
+      "id": "tc_14",
+      "category": "filter",
+      "user_question": "Show all suppliers from the UK or USA.",
+      "expected_sql": "SELECT * FROM \"suppliers\" WHERE \"Country\" IN ('UK', 'USA');",
+      "ground_truth_tables": ["suppliers"]
+    },
+    {
+      "id": "tc_15",
+      "category": "complex",
+      "user_question": "Calculate the total discount given for all orders placed by 'Vins et alcools Chevalier'.",
+      "expected_sql": "SELECT SUM(od.\"UnitPrice\" * od.\"Quantity\" * od.\"Discount\") AS total_discount FROM \"order_details\" od JOIN \"orders\" o ON od.\"OrderID\" = o.\"OrderID\" JOIN \"customers\" c ON o.\"CustomerID\" = c.\"CustomerID\" WHERE c.\"CompanyName\" = 'Vins et alcools Chevalier';",
+      "ground_truth_tables": ["order_details", "orders", "customers"]
+    },
+    {
+      "id": "tc_16",
+      "category": "dates",
+      "user_question": "List employees hired between 1992 and 1994.",
+      "expected_sql": "SELECT \"FirstName\", \"LastName\", \"HireDate\" FROM \"employees\" WHERE \"HireDate\"::date BETWEEN '1992-01-01' AND '1994-12-31';",
+      "ground_truth_tables": ["employees"]
+    },
+    {
+      "id": "tc_17",
+      "category": "inventory",
+      "user_question": "Which products are currently out of stock?",
+      "expected_sql": "SELECT * FROM \"products\" WHERE \"UnitsInStock\" = 0;",
+      "ground_truth_tables": ["products"]
+    },
+    {
+      "id": "tc_18",
+      "category": "employees",
+      "user_question": "List the names of employees who live in London.",
+      "expected_sql": "SELECT \"FirstName\", \"LastName\" FROM \"employees\" WHERE \"City\" = 'London';",
+      "ground_truth_tables": ["employees"]
+    },
+    {
+      "id": "tc_19",
+      "category": "sales",
+      "user_question": "What is the total revenue generated by each product?",
+      "expected_sql": "SELECT p.\"ProductName\", SUM(od.\"UnitPrice\" * od.\"Quantity\" * (1 - od.\"Discount\")) AS revenue FROM \"products\" p JOIN \"order_details\" od ON p.\"ProductID\" = od.\"ProductID\" GROUP BY p.\"ProductName\" ORDER BY revenue DESC;",
+      "ground_truth_tables": ["products", "order_details"]
+    },
+    {
+      "id": "tc_20",
+      "category": "shipping",
+      "user_question": "Show all orders that were shipped late (ShippedDate > RequiredDate).",
+      "expected_sql": "SELECT * FROM \"orders\" WHERE \"ShippedDate\"::date > \"RequiredDate\"::date;",
+      "ground_truth_tables": ["orders"]
+    },
+    {
+      "id": "tc_21",
+      "category": "suppliers",
+      "user_question": "List all suppliers and the number of products they provide.",
+      "expected_sql": "SELECT s.\"CompanyName\", COUNT(p.\"ProductID\") AS product_count FROM \"suppliers\" s JOIN \"products\" p ON s.\"SupplierID\" = p.\"SupplierID\" GROUP BY s.\"CompanyName\" ORDER BY product_count DESC;",
+      "ground_truth_tables": ["suppliers", "products"]
+    },
+    {
+      "id": "tc_22",
+      "category": "geography",
+      "user_question": "How many customers are located in each city of Germany?",
+      "expected_sql": "SELECT \"City\", COUNT(\"CustomerID\") FROM \"customers\" WHERE \"Country\" = 'Germany' GROUP BY \"City\";",
+      "ground_truth_tables": ["customers"]
+    },
+    {
+      "id": "tc_23",
+      "category": "orders",
+      "user_question": "Find the average freight cost for orders shipped to the USA.",
+      "expected_sql": "SELECT AVG(\"Freight\") FROM \"orders\" WHERE \"ShipCountry\" = 'USA';",
+      "ground_truth_tables": ["orders"]
+    },
+    {
+      "id": "tc_24",
+      "category": "employees",
+      "user_question": "Show me the territories handled by employee 'Nancy Davolio'.",
+      "expected_sql": "SELECT t.\"TerritoryDescription\" FROM \"employees\" e JOIN \"employee_territories\" et ON e.\"EmployeeID\" = et.\"EmployeeID\" JOIN \"territories\" t ON et.\"TerritoryID\" = t.\"TerritoryID\" WHERE e.\"FirstName\" = 'Nancy' AND e.\"LastName\" = 'Davolio';",
+      "ground_truth_tables": ["employees", "employee_territories", "territories"]
+    },
+    {
+      "id": "tc_25",
+      "category": "products",
+      "user_question": "Which products have a unit price higher than the average price?",
+      "expected_sql": "SELECT \"ProductName\", \"UnitPrice\" FROM \"products\" WHERE \"UnitPrice\" > (SELECT AVG(\"UnitPrice\") FROM \"products\");",
+      "ground_truth_tables": ["products"]
+    },
+    {
+      "id": "tc_26",
+      "category": "customers",
+      "user_question": "List all customers who have never placed an order.",
+      "expected_sql": "SELECT \"CompanyName\" FROM \"customers\" WHERE \"CustomerID\" NOT IN (SELECT \"CustomerID\" FROM \"orders\");",
+      "ground_truth_tables": ["customers", "orders"]
+    },
+    {
+      "id": "tc_27",
+      "category": "sales",
+      "user_question": "What was the total quantity of 'Chai' sold in 1998?",
+      "expected_sql": "SELECT SUM(od.\"Quantity\") FROM \"order_details\" od JOIN \"products\" p ON od.\"ProductID\" = p.\"ProductID\" JOIN \"orders\" o ON od.\"OrderID\" = o.\"OrderID\" WHERE p.\"ProductName\" = 'Chai' AND o.\"OrderDate\"::date BETWEEN '1998-01-01' AND '1998-12-31';",
+      "ground_truth_tables": ["order_details", "products", "orders"]
+    },
+    {
+      "id": "tc_28",
+      "category": "suppliers",
+      "user_question": "Which suppliers are also in the same city as our customers?",
+      "expected_sql": "SELECT DISTINCT s.\"CompanyName\" FROM \"suppliers\" s JOIN \"customers\" c ON s.\"City\" = c.\"City\";",
+      "ground_truth_tables": ["suppliers", "customers"]
+    },
+    {
+      "id": "tc_29",
+      "category": "employees",
+      "user_question": "Who is the oldest employee in terms of age?",
+      "expected_sql": "SELECT \"FirstName\", \"LastName\", \"BirthDate\" FROM \"employees\" ORDER BY \"BirthDate\" ASC LIMIT 1;",
+      "ground_truth_tables": ["employees"]
+    },
+    {
+      "id": "tc_30",
+      "category": "orders",
+      "user_question": "Find the total revenue for order ID 10248.",
+      "expected_sql": "SELECT SUM(\"UnitPrice\" * \"Quantity\" * (1 - \"Discount\")) FROM \"order_details\" WHERE \"OrderID\" = 10248;",
+      "ground_truth_tables": ["order_details"]
+    },
+    {
+      "id": "tc_31",
+      "category": "complex",
+      "user_question": "Show all products supplied by 'Exotic Liquids' that are in the 'Beverages' category.",
+      "expected_sql": "SELECT p.\"ProductName\" FROM \"products\" p JOIN \"suppliers\" s ON p.\"SupplierID\" = s.\"SupplierID\" JOIN \"categories\" c ON p.\"CategoryID\" = c.\"CategoryID\" WHERE s.\"CompanyName\" = 'Exotic Liquids' AND c.\"CategoryName\" = 'Beverages';",
+      "ground_truth_tables": ["products", "suppliers", "categories"]
+    },
+    {
+      "id": "tc_32",
+      "category": "complex",
+      "user_question": "Which employees have sold more than 50 different products?",
+      "expected_sql": "SELECT e.\"FirstName\", e.\"LastName\" FROM \"employees\" e JOIN \"orders\" o ON e.\"EmployeeID\" = o.\"EmployeeID\" JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" GROUP BY e.\"EmployeeID\", e.\"FirstName\", e.\"LastName\" HAVING COUNT(DISTINCT od.\"ProductID\") > 50;",
+      "ground_truth_tables": ["employees", "orders", "order_details"]
+    },
+    {
+      "id": "tc_33",
+      "category": "sales",
+      "user_question": "Show the total sales for each year available in the records.",
+      "expected_sql": "SELECT EXTRACT(YEAR FROM \"OrderDate\") AS year, SUM(\"UnitPrice\" * \"Quantity\" * (1 - \"Discount\")) FROM \"orders\" o JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" GROUP BY year ORDER BY year;",
+      "ground_truth_tables": ["orders", "order_details"]
+    },
+    {
+      "id": "tc_34",
+      "category": "inventory",
+      "user_question": "List categories with fewer than 10 products.",
+      "expected_sql": "SELECT c.\"CategoryName\", COUNT(p.\"ProductID\") FROM \"categories\" c JOIN \"products\" p ON c.\"CategoryID\" = p.\"CategoryID\" GROUP BY c.\"CategoryName\" HAVING COUNT(p.\"ProductID\") < 10;",
+      "ground_truth_tables": ["categories", "products"]
+    },
+    {
+      "id": "tc_35",
+      "category": "customers",
+      "user_question": "Which customers have only ever placed one order?",
+      "expected_sql": "SELECT c.\"CompanyName\" FROM \"customers\" c JOIN \"orders\" o ON c.\"CustomerID\" = o.\"CustomerID\" GROUP BY c.\"CompanyName\" HAVING COUNT(o.\"OrderID\") = 1;",
+      "ground_truth_tables": ["customers", "orders"]
+    },
+    {
+      "id": "tc_36",
+      "category": "geography",
+      "user_question": "What is the total revenue per city in the UK?",
+      "expected_sql": "SELECT o.\"ShipCity\", SUM(od.\"UnitPrice\" * od.\"Quantity\" * (1 - od.\"Discount\")) FROM \"orders\" o JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" WHERE o.\"ShipCountry\" = 'UK' GROUP BY o.\"ShipCity\";",
+      "ground_truth_tables": ["orders", "order_details"]
+    },
+    {
+      "id": "tc_37",
+      "category": "employees",
+      "user_question": "List employees who joined the company after 1994.",
+      "expected_sql": "SELECT \"FirstName\", \"LastName\" FROM \"employees\" WHERE \"HireDate\"::date > '1994-12-31';",
+      "ground_truth_tables": ["employees"]
+    },
+    {
+      "id": "tc_38",
+      "category": "shipping",
+      "user_question": "Find the average delay in days between order date and shipped date.",
+      "expected_sql": "SELECT AVG(\"ShippedDate\"::date - \"OrderDate\"::date) FROM \"orders\" WHERE \"ShippedDate\" IS NOT NULL;",
+      "ground_truth_tables": ["orders"]
+    },
+    {
+      "id": "tc_39",
+      "category": "suppliers",
+      "user_question": "How many different categories of products does each supplier provide?",
+      "expected_sql": "SELECT s.\"CompanyName\", COUNT(DISTINCT p.\"CategoryID\") FROM \"suppliers\" s JOIN \"products\" p ON s.\"SupplierID\" = p.\"SupplierID\" GROUP BY s.\"CompanyName\";",
+      "ground_truth_tables": ["suppliers", "products"]
+    },
+    {
+      "id": "tc_40",
+      "category": "complex",
+      "user_question": "What is the most expensive product in each category?",
+      "expected_sql": "SELECT c.\"CategoryName\", MAX(p.\"UnitPrice\") FROM \"categories\" c JOIN \"products\" p ON c.\"CategoryID\" = p.\"CategoryID\" GROUP BY c.\"CategoryName\";",
+      "ground_truth_tables": ["categories", "products"]
+    },
+    {
+      "id": "tc_41",
+      "category": "sales",
+      "user_question": "List orders that include more than 5 different products.",
+      "expected_sql": "SELECT \"OrderID\" FROM \"order_details\" GROUP BY \"OrderID\" HAVING COUNT(\"ProductID\") > 5;",
+      "ground_truth_tables": ["order_details"]
+    },
+    {
+      "id": "tc_42",
+      "category": "customers",
+      "user_question": "Who is the top customer in France by order volume?",
+      "expected_sql": "SELECT c.\"CompanyName\", COUNT(o.\"OrderID\") AS order_vol FROM \"customers\" c JOIN \"orders\" o ON c.\"CustomerID\" = o.\"CustomerID\" WHERE c.\"Country\" = 'France' GROUP BY c.\"CompanyName\" ORDER BY order_vol DESC LIMIT 1;",
+      "ground_truth_tables": ["customers", "orders"]
+    },
+    {
+      "id": "tc_43",
+      "category": "inventory",
+      "user_question": "Which category has the most units currently on order?",
+      "expected_sql": "SELECT c.\"CategoryName\", SUM(p.\"UnitsOnOrder\") AS total_on_order FROM \"categories\" c JOIN \"products\" p ON c.\"CategoryID\" = p.\"CategoryID\" GROUP BY c.\"CategoryName\" ORDER BY total_on_order DESC LIMIT 1;",
+      "ground_truth_tables": ["categories", "products"]
+    },
+    {
+      "id": "tc_44",
+      "category": "employees",
+      "user_question": "Which employees report to no one?",
+      "expected_sql": "SELECT \"FirstName\", \"LastName\" FROM \"employees\" WHERE \"ReportsTo\" IS NULL;",
+      "ground_truth_tables": ["employees"]
+    },
+    {
+      "id": "tc_45",
+      "category": "geography",
+      "user_question": "List all countries where we have both customers and suppliers.",
+      "expected_sql": "SELECT DISTINCT c.\"Country\" FROM \"customers\" c INTERSECT SELECT DISTINCT s.\"Country\" FROM \"suppliers\" s;",
+      "ground_truth_tables": ["customers", "suppliers"]
+    },
+    {
+      "id": "tc_46",
+      "category": "sales",
+      "user_question": "Total revenue for the 'Beverages' category in 1997.",
+      "expected_sql": "SELECT SUM(od.\"UnitPrice\" * od.\"Quantity\" * (1 - od.\"Discount\")) FROM \"order_details\" od JOIN \"products\" p ON od.\"ProductID\" = p.\"ProductID\" JOIN \"categories\" c ON p.\"CategoryID\" = c.\"CategoryID\" JOIN \"orders\" o ON od.\"OrderID\" = o.\"OrderID\" WHERE c.\"CategoryName\" = 'Beverages' AND o.\"OrderDate\"::date BETWEEN '1997-01-01' AND '1997-12-31';",
+      "ground_truth_tables": ["order_details", "products", "categories", "orders"]
+    },
+    {
+      "id": "tc_47",
+      "category": "shipping",
+      "user_question": "Which shipper is used most for orders going to Germany?",
+      "expected_sql": "SELECT s.\"CompanyName\", COUNT(o.\"OrderID\") AS count FROM \"shippers\" s JOIN \"orders\" o ON s.\"ShipperID\" = o.\"ShipVia\" WHERE o.\"ShipCountry\" = 'Germany' GROUP BY s.\"CompanyName\" ORDER BY count DESC LIMIT 1;",
+      "ground_truth_tables": ["shippers", "orders"]
+    },
+    {
+      "id": "tc_48",
+      "category": "suppliers",
+      "user_question": "List suppliers who have products in more than 3 categories.",
+      "expected_sql": "SELECT s.\"CompanyName\" FROM \"suppliers\" s JOIN \"products\" p ON s.\"SupplierID\" = p.\"SupplierID\" GROUP BY s.\"CompanyName\" HAVING COUNT(DISTINCT p.\"CategoryID\") > 3;",
+      "ground_truth_tables": ["suppliers", "products"]
+    },
+    {
+      "id": "tc_49",
+      "category": "complex",
+      "user_question": "Find the average quantity of products per order for each category.",
+      "expected_sql": "SELECT c.\"CategoryName\", AVG(od.\"Quantity\") FROM \"categories\" c JOIN \"products\" p ON c.\"CategoryID\" = p.\"CategoryID\" JOIN \"order_details\" od ON p.\"ProductID\" = od.\"ProductID\" GROUP BY c.\"CategoryName\";",
+      "ground_truth_tables": ["categories", "products", "order_details"]
+    },
+    {
+      "id": "tc_50",
+      "category": "sales",
+      "user_question": "Which month in 1997 had the highest total revenue?",
+      "expected_sql": "SELECT DATE_TRUNC('month', \"OrderDate\") AS month, SUM(\"UnitPrice\" * \"Quantity\" * (1 - \"Discount\")) AS revenue FROM \"orders\" o JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" WHERE \"OrderDate\"::date BETWEEN '1997-01-01' AND '1997-12-31' GROUP BY month ORDER BY revenue DESC LIMIT 1;",
+      "ground_truth_tables": ["orders", "order_details"]
+    },
+    {
+      "id": "tc_51",
+      "category": "analytical",
+      "user_question": "What is the average order value (AOV) for customers in the USA?",
+      "expected_sql": "SELECT AVG(order_total) FROM (SELECT o.\"OrderID\", SUM(od.\"UnitPrice\" * od.\"Quantity\" * (1 - od.\"Discount\")) AS order_total FROM \"orders\" o JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" WHERE o.\"ShipCountry\" = 'USA' GROUP BY o.\"OrderID\") AS subquery;",
+      "ground_truth_tables": ["orders", "order_details"]
+    },
+    {
+      "id": "tc_52",
+      "category": "inventory",
+      "user_question": "Which products need reordering? (UnitsInStock + UnitsOnOrder < ReorderLevel)",
+      "expected_sql": "SELECT \"ProductName\", \"UnitsInStock\", \"UnitsOnOrder\", \"ReorderLevel\" FROM \"products\" WHERE (\"UnitsInStock\" + \"UnitsOnOrder\") < \"ReorderLevel\";",
+      "ground_truth_tables": ["products"]
+    },
+    {
+      "id": "tc_53",
+      "category": "employees",
+      "user_question": "List employees who have never processed an order.",
+      "expected_sql": "SELECT \"FirstName\", \"LastName\" FROM \"employees\" WHERE \"EmployeeID\" NOT IN (SELECT DISTINCT \"EmployeeID\" FROM \"orders\");",
+      "ground_truth_tables": ["employees", "orders"]
+    },
+    {
+      "id": "tc_54",
+      "category": "sales",
+      "user_question": "Show the top 3 categories by total revenue in the first quarter of 1997.",
+      "expected_sql": "SELECT c.\"CategoryName\", SUM(od.\"UnitPrice\" * od.\"Quantity\" * (1 - od.\"Discount\")) AS revenue FROM \"categories\" c JOIN \"products\" p ON c.\"CategoryID\" = p.\"CategoryID\" JOIN \"order_details\" od ON p.\"ProductID\" = od.\"ProductID\" JOIN \"orders\" o ON od.\"OrderID\" = o.\"OrderID\" WHERE o.\"OrderDate\"::date BETWEEN '1997-01-01' AND '1997-03-31' GROUP BY c.\"CategoryName\" ORDER BY revenue DESC LIMIT 3;",
+      "ground_truth_tables": ["categories", "products", "order_details", "orders"]
+    },
+    {
+      "id": "tc_55",
+      "category": "shipping",
+      "user_question": "Which country has the highest average freight cost?",
+      "expected_sql": "SELECT \"ShipCountry\", AVG(\"Freight\") AS avg_freight FROM \"orders\" GROUP BY \"ShipCountry\" ORDER BY avg_freight DESC LIMIT 1;",
+      "ground_truth_tables": ["orders"]
+    },
+    {
+      "id": "tc_56",
+      "category": "complex",
+      "user_question": "Find customers who ordered 'Chai' and 'Chang' in the same order.",
+      "expected_sql": "SELECT od1.\"OrderID\" FROM \"order_details\" od1 JOIN \"order_details\" od2 ON od1.\"OrderID\" = od2.\"OrderID\" JOIN \"products\" p1 ON od1.\"ProductID\" = p1.\"ProductID\" JOIN \"products\" p2 ON od2.\"ProductID\" = p2.\"ProductID\" WHERE p1.\"ProductName\" = 'Chai' AND p2.\"ProductName\" = 'Chang';",
+      "ground_truth_tables": ["order_details", "products"]
+    },
+    {
+      "id": "tc_57",
+      "category": "sales",
+      "user_question": "What is the total revenue per month for the year 1996?",
+      "expected_sql": "SELECT DATE_TRUNC('month', \"OrderDate\") AS month, SUM(\"UnitPrice\" * \"Quantity\" * (1 - \"Discount\")) FROM \"orders\" o JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" WHERE \"OrderDate\"::date BETWEEN '1996-01-01' AND '1996-12-31' GROUP BY month ORDER BY month;",
+      "ground_truth_tables": ["orders", "order_details"]
+    },
+    {
+      "id": "tc_58",
+      "category": "geography",
+      "user_question": "List all suppliers located in cities that start with 'L'.",
+      "expected_sql": "SELECT \"CompanyName\", \"City\" FROM \"suppliers\" WHERE \"City\" LIKE 'L%';",
+      "ground_truth_tables": ["suppliers"]
+    },
+    {
+      "id": "tc_59",
+      "category": "employees",
+      "user_question": "Find the employee with the most reports.",
+      "expected_sql": "SELECT m.\"FirstName\", m.\"LastName\", COUNT(e.\"EmployeeID\") AS report_count FROM \"employees\" m JOIN \"employees\" e ON m.\"EmployeeID\" = e.\"ReportsTo\" GROUP BY m.\"EmployeeID\", m.\"FirstName\", m.\"LastName\" ORDER BY report_count DESC LIMIT 1;",
+      "ground_truth_tables": ["employees"]
+    },
+    {
+      "id": "tc_60",
+      "category": "inventory",
+      "user_question": "Which category has the highest number of discontinued products?",
+      "expected_sql": "SELECT c.\"CategoryName\", COUNT(*) AS discontinued_count FROM \"categories\" c JOIN \"products\" p ON c.\"CategoryID\" = p.\"CategoryID\" WHERE p.\"Discontinued\" = '1' GROUP BY c.\"CategoryName\" ORDER BY discontinued_count DESC LIMIT 1;",
+      "ground_truth_tables": ["categories", "products"]
+    },
+    {
+      "id": "tc_61",
+      "category": "customers",
+      "user_question": "List customers who have spent more than $10,000 in total.",
+      "expected_sql": "SELECT c.\"CompanyName\", SUM(od.\"UnitPrice\" * od.\"Quantity\" * (1 - od.\"Discount\")) AS total_spent FROM \"customers\" c JOIN \"orders\" o ON c.\"CustomerID\" = o.\"CustomerID\" JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" GROUP BY c.\"CompanyName\" HAVING SUM(od.\"UnitPrice\" * od.\"Quantity\" * (1 - od.\"Discount\")) > 10000;",
+      "ground_truth_tables": ["customers", "orders", "order_details"]
+    },
+    {
+      "id": "tc_62",
+      "category": "shipping",
+      "user_question": "Show total freight paid to each shipper.",
+      "expected_sql": "SELECT s.\"CompanyName\", SUM(o.\"Freight\") FROM \"shippers\" s JOIN \"orders\" o ON s.\"ShipperID\" = o.\"ShipVia\" GROUP BY s.\"CompanyName\";",
+      "ground_truth_tables": ["shippers", "orders"]
+    },
+    {
+      "id": "tc_63",
+      "category": "complex",
+      "user_question": "Find products that have been ordered by more than 50 different customers.",
+      "expected_sql": "SELECT p.\"ProductName\" FROM \"products\" p JOIN \"order_details\" od ON p.\"ProductID\" = od.\"ProductID\" JOIN \"orders\" o ON od.\"OrderID\" = o.\"OrderID\" GROUP BY p.\"ProductName\" HAVING COUNT(DISTINCT o.\"CustomerID\") > 50;",
+      "ground_truth_tables": ["products", "order_details", "orders"]
+    },
+    {
+      "id": "tc_64",
+      "category": "dates",
+      "user_question": "What was the last order date for each customer?",
+      "expected_sql": "SELECT \"CustomerID\", MAX(\"OrderDate\") FROM \"orders\" GROUP BY \"CustomerID\";",
+      "ground_truth_tables": ["orders"]
+    },
+    {
+      "id": "tc_65",
+      "category": "suppliers",
+      "user_question": "Which supplier provides the most expensive product?",
+      "expected_sql": "SELECT s.\"CompanyName\", p.\"ProductName\", p.\"UnitPrice\" FROM \"suppliers\" s JOIN \"products\" p ON s.\"SupplierID\" = p.\"SupplierID\" ORDER BY p.\"UnitPrice\" DESC LIMIT 1;",
+      "ground_truth_tables": ["suppliers", "products"]
+    },
+    {
+      "id": "tc_66",
+      "category": "sales",
+      "user_question": "Show revenue generated by each employee in 1997.",
+      "expected_sql": "SELECT e.\"FirstName\", e.\"LastName\", SUM(od.\"UnitPrice\" * od.\"Quantity\" * (1 - od.\"Discount\")) AS revenue FROM \"employees\" e JOIN \"orders\" o ON e.\"EmployeeID\" = o.\"EmployeeID\" JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" WHERE o.\"OrderDate\"::date BETWEEN '1997-01-01' AND '1997-12-31' GROUP BY e.\"EmployeeID\", e.\"FirstName\", e.\"LastName\";",
+      "ground_truth_tables": ["employees", "orders", "order_details"]
+    },
+    {
+      "id": "tc_67",
+      "category": "analytical",
+      "user_question": "What percentage of products are currently out of stock?",
+      "expected_sql": "SELECT (COUNT(*) FILTER (WHERE \"UnitsInStock\" = 0) * 100.0 / COUNT(*)) FROM \"products\";",
+      "ground_truth_tables": ["products"]
+    },
+    {
+      "id": "tc_68",
+      "category": "shipping",
+      "user_question": "List orders where the ship city is different from the customer city.",
+      "expected_sql": "SELECT o.\"OrderID\", o.\"ShipCity\", c.\"City\" FROM \"orders\" o JOIN \"customers\" c ON o.\"CustomerID\" = c.\"CustomerID\" WHERE o.\"ShipCity\" <> c.\"City\";",
+      "ground_truth_tables": ["orders", "customers"]
+    },
+    {
+      "id": "tc_69",
+      "category": "complex",
+      "user_question": "Find the average number of items per order.",
+      "expected_sql": "SELECT AVG(item_count) FROM (SELECT \"OrderID\", COUNT(\"ProductID\") AS item_count FROM \"order_details\" GROUP BY \"OrderID\") AS subquery;",
+      "ground_truth_tables": ["order_details"]
+    },
+    {
+      "id": "tc_70",
+      "category": "employees",
+      "user_question": "List employees who work in the same city as at least one customer.",
+      "expected_sql": "SELECT DISTINCT e.\"FirstName\", e.\"LastName\" FROM \"employees\" e JOIN \"customers\" c ON e.\"City\" = c.\"City\";",
+      "ground_truth_tables": ["employees", "customers"]
+    },
+    {
+      "id": "tc_71",
+      "category": "inventory",
+      "user_question": "Total quantity of products in stock for each category.",
+      "expected_sql": "SELECT c.\"CategoryName\", SUM(p.\"UnitsInStock\") FROM \"categories\" c JOIN \"products\" p ON c.\"CategoryID\" = p.\"CategoryID\" GROUP BY c.\"CategoryName\";",
+      "ground_truth_tables": ["categories", "products"]
+    },
+    {
+      "id": "tc_72",
+      "category": "sales",
+      "user_question": "Identify orders with a total discount greater than $500.",
+      "expected_sql": "SELECT \"OrderID\", SUM(\"UnitPrice\" * \"Quantity\" * \"Discount\") AS total_discount FROM \"order_details\" GROUP BY \"OrderID\" HAVING SUM(\"UnitPrice\" * \"Quantity\" * \"Discount\") > 500;",
+      "ground_truth_tables": ["order_details"]
+    },
+    {
+      "id": "tc_73",
+      "category": "complex",
+      "user_question": "Which products were ordered by customers in Brazil in 1998?",
+      "expected_sql": "SELECT DISTINCT p.\"ProductName\" FROM \"products\" p JOIN \"order_details\" od ON p.\"ProductID\" = od.\"ProductID\" JOIN \"orders\" o ON od.\"OrderID\" = o.\"OrderID\" WHERE o.\"ShipCountry\" = 'Brazil' AND o.\"OrderDate\"::date BETWEEN '1998-01-01' AND '1998-12-31';",
+      "ground_truth_tables": ["products", "order_details", "orders"]
+    },
+    {
+      "id": "tc_74",
+      "category": "dates",
+      "user_question": "Show the number of orders placed on each day of the week.",
+      "expected_sql": "SELECT EXTRACT(DOW FROM \"OrderDate\") AS dow, COUNT(*) FROM \"orders\" GROUP BY dow ORDER BY dow;",
+      "ground_truth_tables": ["orders"]
+    },
+    {
+      "id": "tc_75",
+      "category": "shipping",
+      "user_question": "Find the longest delivery time (OrderDate to ShippedDate).",
+      "expected_sql": "SELECT MAX(\"ShippedDate\"::date - \"OrderDate\"::date) FROM \"orders\" WHERE \"ShippedDate\" IS NOT NULL;",
+      "ground_truth_tables": ["orders"]
+    },
+    {
+      "id": "tc_76",
+      "category": "analytical",
+      "user_question": "Compare total revenue of 1996 vs 1997.",
+      "expected_sql": "SELECT EXTRACT(YEAR FROM \"OrderDate\") AS year, SUM(\"UnitPrice\" * \"Quantity\" * (1 - \"Discount\")) FROM \"orders\" o JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" WHERE EXTRACT(YEAR FROM \"OrderDate\") IN (1996, 1997) GROUP BY year;",
+      "ground_truth_tables": ["orders", "order_details"]
+    },
+    {
+      "id": "tc_77",
+      "category": "customers",
+      "user_question": "List cities where we have more than 5 customers.",
+      "expected_sql": "SELECT \"City\", COUNT(\"CustomerID\") FROM \"customers\" GROUP BY \"City\" HAVING COUNT(\"CustomerID\") > 5;",
+      "ground_truth_tables": ["customers"]
+    },
+    {
+      "id": "tc_78",
+      "category": "employees",
+      "user_question": "How many employees are assigned to the 'Northern' region?",
+      "expected_sql": "SELECT COUNT(DISTINCT et.\"EmployeeID\") FROM \"employee_territories\" et JOIN \"territories\" t ON et.\"TerritoryID\" = t.\"TerritoryID\" JOIN \"regions\" r ON t.\"RegionID\" = r.\"RegionID\" WHERE r.\"RegionDescription\" = 'Northern';",
+      "ground_truth_tables": ["employee_territories", "territories", "regions"]
+    },
+    {
+      "id": "tc_79",
+      "category": "sales",
+      "user_question": "Find the average discount per product category.",
+      "expected_sql": "SELECT c.\"CategoryName\", AVG(od.\"Discount\") FROM \"categories\" c JOIN \"products\" p ON c.\"CategoryID\" = p.\"CategoryID\" JOIN \"order_details\" od ON p.\"ProductID\" = od.\"ProductID\" GROUP BY c.\"CategoryName\";",
+      "ground_truth_tables": ["categories", "products", "order_details"]
+    },
+    {
+      "id": "tc_80",
+      "category": "complex",
+      "user_question": "Which customers bought products from more than 5 different suppliers?",
+      "expected_sql": "SELECT o.\"CustomerID\" FROM \"orders\" o JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" JOIN \"products\" p ON od.\"ProductID\" = p.\"ProductID\" GROUP BY o.\"CustomerID\" HAVING COUNT(DISTINCT p.\"SupplierID\") > 5;",
+      "ground_truth_tables": ["orders", "order_details", "products"]
+    },
+    {
+      "id": "tc_81",
+      "category": "inventory",
+      "user_question": "Total value of inventory for each supplier.",
+      "expected_sql": "SELECT \"SupplierID\", SUM(\"UnitPrice\" * \"UnitsInStock\") FROM \"products\" GROUP BY \"SupplierID\";",
+      "ground_truth_tables": ["products"]
+    },
+    {
+      "id": "tc_82",
+      "category": "shipping",
+      "user_question": "List orders where the freight is higher than the order's total items cost.",
+      "expected_sql": "SELECT o.\"OrderID\" FROM \"orders\" o JOIN (SELECT \"OrderID\", SUM(\"UnitPrice\" * \"Quantity\") AS items_cost FROM \"order_details\" GROUP BY \"OrderID\") od ON o.\"OrderID\" = od.\"OrderID\" WHERE o.\"Freight\" > od.items_cost;",
+      "ground_truth_tables": ["orders", "order_details"]
+    },
+    {
+      "id": "tc_83",
+      "category": "complex",
+      "user_question": "Show customers who ordered both 'Seafood' and 'Meat/Poultry'.",
+      "expected_sql": "SELECT DISTINCT c.\"CompanyName\" FROM \"customers\" c JOIN \"orders\" o ON c.\"CustomerID\" = o.\"CustomerID\" JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" JOIN \"products\" p ON od.\"ProductID\" = p.\"ProductID\" JOIN \"categories\" cat ON p.\"CategoryID\" = cat.\"CategoryID\" WHERE cat.\"CategoryName\" = 'Seafood' INTERSECT SELECT DISTINCT c.\"CompanyName\" FROM \"customers\" c JOIN \"orders\" o ON c.\"CustomerID\" = o.\"CustomerID\" JOIN \"order_details\" od ON o.\"OrderID\" = od.\"OrderID\" JOIN \"products\" p ON od.\"ProductID\" = p.\"ProductID\" JOIN \"categories\" cat ON p.\"CategoryID\" = cat.\"CategoryID\" WHERE cat.\"CategoryName\" = 'Meat/Poultry';",
+      "ground_truth_tables": ["customers", "orders", "order_details", "products", "categories"]
+    },
+    {
+      "id": "tc_84",
+      "category": "analytical",
+      "user_question": "Find the median unit price of all products.",
+      "expected_sql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY \"UnitPrice\") FROM \"products\";",
+      "ground_truth_tables": ["products"]
+    },
+    {
+      "id": "tc_85",
+      "category": "dates",
+      "user_question": "How many orders were placed on weekends?",
+      "expected_sql": "SELECT COUNT(*) FROM \"orders\" WHERE EXTRACT(DOW FROM \"OrderDate\") IN (0, 6);",
+      "ground_truth_tables": ["orders"]
+    },
+    {
+      "id": "tc_86",
+      "category": "employees",
+      "user_question": "List employees who share the same birth month.",
+      "expected_sql": "SELECT EXTRACT(MONTH FROM \"BirthDate\") AS month, COUNT(*) FROM \"employees\" GROUP BY month HAVING COUNT(*) > 1;",
+      "ground_truth_tables": ["employees"]
+    },
+    {
+      "id": "tc_87",
+      "category": "sales",
+      "user_question": "Which orders have the same customer and ship country?",
+      "expected_sql": "SELECT \"OrderID\", \"CustomerID\", \"ShipCountry\" FROM \"orders\" WHERE \"ShipCountry\" = (SELECT \"Country\" FROM \"customers\" c WHERE c.\"CustomerID\" = \"orders\".\"CustomerID\");",
+      "ground_truth_tables": ["orders", "customers"]
+    },
+    {
+      "id": "tc_88",
+      "category": "complex",
+      "user_question": "Total sales generated by customers who have 'Manager' in their contact title.",
+      "expected_sql": "SELECT SUM(od.\"UnitPrice\" * od.\"Quantity\" * (1 - od.\"Discount\")) FROM \"order_details\" od JOIN \"orders\" o ON od.\"OrderID\" = o.\"OrderID\" JOIN \"customers\" c ON o.\"CustomerID\" = c.\"CustomerID\" WHERE c.\"ContactTitle\" LIKE '%Manager%';",
+      "ground_truth_tables": ["order_details", "orders", "customers"]
+    },
+    {
+      "id": "tc_89",
+      "category": "inventory",
+      "user_question": "List categories where all products are currently in stock.",
+      "expected_sql": "SELECT \"CategoryName\" FROM \"categories\" WHERE \"CategoryID\" NOT IN (SELECT \"CategoryID\" FROM \"products\" WHERE \"UnitsInStock\" = 0);",
+      "ground_truth_tables": ["categories", "products"]
+    },
+    {
+      "id": "tc_90",
+      "category": "analytical",
+      "user_question": "What is the average number of orders per customer?",
+      "expected_sql": "SELECT AVG(order_count) FROM (SELECT \"CustomerID\", COUNT(*) AS order_count FROM \"orders\" GROUP BY \"CustomerID\") AS subquery;",
+      "ground_truth_tables": ["orders"]
+    }
+  ]
+}
