@@ -3,6 +3,8 @@ import pandas as pd
 import requests
 import plotly.express as px
 
+API_URL = "https://your-backend-service.up.railway.app"
+
 st.set_page_config(page_title="QueryMate", layout="wide")
 
 st.title("QueryMate")
@@ -45,7 +47,8 @@ if user_input:
                 # Call FastAPI backend
                 try:
                     response = requests.post(
-                                "http://127.0.0.1:8000/chat",
+                                 f"{API_URL}/chat",
+                                # "http://127.0.0.1:8000/chat",
                                 json={"message": user_input, "thread_id": "session_001"}, 
                                 timeout=60
                             )
