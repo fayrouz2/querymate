@@ -220,3 +220,6 @@ __marimo__/
 
 # macOS
 .DS_Store
+
+# Evaluation results (regenerated each run)
+tests/results/

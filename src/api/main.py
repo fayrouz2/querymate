@@ -1,10 +1,12 @@
 import os
 from fastapi import FastAPI
 from pydantic import BaseModel
-
+from dotenv import load_dotenv
 from src.database.db_tool import SupabaseDBToolAsync, DBToolConfig
 from src.app_graph.workflow import build_querymate_workflow
 from langchain_core.messages import HumanMessage
+
+load_dotenv()
 
 app = FastAPI()
 
