@@ -186,7 +186,7 @@ def visualization_code_generator_node(state: AgentState) -> dict:
     response = llm.invoke(messages)
 
     return {
-        "messages": [response],
+        "messages": ["I've generated a chart based on your data!"],
         "viz_code": response.content.strip()
     }
 
