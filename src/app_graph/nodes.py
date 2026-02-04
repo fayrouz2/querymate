@@ -57,12 +57,8 @@ def orchestrator_node(state: AgentState) -> dict:
     response = run_master_agent(state["messages"])
     content = response.content.strip()
 
-  
-    clean_content = content.replace("[NO_SQL]", "").replace("[TRIGGER_SQL]", "").strip()
-    response.content = clean_content 
    
-
-    if "[TRIGGER_SQL]" in content: 
+    if "[TRIGGER_SQL]" in content:
         next_step = "sql_generator"
     else:
         next_step = "end"
