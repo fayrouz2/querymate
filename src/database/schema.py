@@ -52,8 +52,6 @@ def load_schema_once() -> Dict:
             conn.close()
             print("✅ Supabase DB connection closed")
 
-
-# Manual test
 if __name__ == "__main__":
     schema = load_schema_once()
     print(json.dumps(schema, indent=2))

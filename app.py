@@ -10,32 +10,22 @@ st.set_page_config(page_title="QueryMate", layout="wide")
 st.title("QueryMate")
 st.caption("Ask questions and get answers directly from the database")
 
-# Initialize session state
 if "history" not in st.session_state:
     st.session_state.history = []
 
 if "last_result" not in st.session_state:
     st.session_state.last_result = None
 
-# =========================
-# Sidebar Chat
-# =========================
 with st.sidebar:
     st.header("QueryMate Assistant")
 
-    # Display chat history
     for msg in st.session_state.history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # Input box
     user_input = st.chat_input("Ask about the data...")
 
-# =========================
-# Handle user input
-# =========================
 if user_input:
-    # Save user message
     st.session_state.history.append({"role": "user", "content": user_input})
 
     with st.sidebar:
@@ -44,11 +34,10 @@ if user_input:
     with assistant_placeholder.container():
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
-                # Call FastAPI backend
                 try:
                     response = requests.post(
-                                 f"{API_URL}/chat",
-                                # "http://127.0.0.1:8000/chat",
+                                # f"{API_URL}/chat",
+                                "http://127.0.0.1:8000/chat",
                                 json={"message": user_input, "thread_id": "session_001"}, 
                                 timeout=60
                             )
@@ -59,20 +48,18 @@ if user_input:
                     st.error(f"API Error: {e}")
                     st.stop()
 
-                # Extract results
                 answer = result.get("reply", "Here are your results.")
                 sql_query = result.get("sql_query")
                 columns = result.get("columns")
-                rows = result.get("sample_rows")  # matches FastAPI
+                rows = result.get("sample_rows") 
                 viz_code = result.get("viz_code")
 
 
                 df = pd.DataFrame(rows, columns=columns) if columns and rows else None
                 fig = None
 
-                # Execute visualization code safely
                 if viz_code and df is not None:
-                    # st.code(viz_code, language="python")  # optional debug
+                    # st.code(viz_code, language="python")
                     try:
                         local_vars = {"df": df, "px": px}
                         exec(viz_code, {"__builtins__": {}}, local_vars)
@@ -82,7 +69,6 @@ if user_input:
                     except Exception as e:
                         st.warning(f"Visualization failed: {e}")
 
-                # Save last result
                 st.session_state.last_result = {
                     "question": user_input,
                     "df": df,
@@ -91,13 +77,9 @@ if user_input:
                     "answer": answer
                 }
 
-                # Append AI reply
                 st.session_state.history.append({"role": "assistant", "content": answer})
                 st.rerun()
 
-# =========================
-# Main panel: Results
-# =========================
 if st.session_state.last_result:
     result = st.session_state.last_result
 

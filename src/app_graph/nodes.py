@@ -7,28 +7,20 @@ from src.agent.sql_generator_agent import generate_sql_from_nl
 
 from src.agent.prompts import VISUALIZATION_PLANNER_PROMPT,  VISUALIZATION_CODE_PROMPT
 from src.config import OPENAI_API_KEY
-from .state import VizPlannerState
 
 from langchain_core.messages import AIMessage
 from .state import AgentState
-import json
 from src.metadata.data_dictionary import DATA_DICTIONARY
-from src.agent.prompts import REPAIR_SYSTEM_PROMPT
 from src.agent.sql_validator_agent import repair_reasoning_engine
 from src.database.db_tool import SupabaseDBToolAsync
-from src.app_graph.state import GraphState
-
-from typing import Dict, Any
-
 from src.database.extract_db_result_preview import _extract_columns_and_sample_rows
 
 
-def orchestrator_node(state: AgentState):
+def orchestrator_node(state: AgentState) -> dict:
     """
     The Orchestrator: Controls the flow based on Repair Agent feedback.
     """
 
-    # ✅ SUCCESS GUARD — must be FIRST
     if (state.get("db_result") or {}).get("ok") and state.get("viz_code"):
         return {
             "next_step": "end"
@@ -38,16 +30,10 @@ def orchestrator_node(state: AgentState):
         feedback = state.get("feedback_reason", "Could you provide more details?")
         return {
             "messages": [AIMessage(content=f"I need a bit more info: {feedback}")],
-            "next_step": "end", # Stops the graph to wait for user
-            "needs_clarification": False # Reset for next turn
+            "next_step": "end",
+            "needs_clarification": False 
         }
 
-    # if state.get("is_unsupported"):
-    #     return {
-    #         "messages": [AIMessage(content="I'm sorry, I can't perform that specific analysis on this database.")],
-    #         "next_step": "end",
-    #         "is_unsupported": False
-    #     }
     if state.get("is_unsupported"):
     
         reason = state.get("feedback_reason", "")
@@ -84,136 +70,13 @@ def orchestrator_node(state: AgentState):
 
 
 
-
-
-####updated orecstrotr node async22
-
-
-# async def orchestrator_node(state: AgentState):
-#     """
-#     The Orchestrator: Controls the flow based on technical feedback 
-#     and presents final results to the user.
-#     """
-#     # 1. Handle Clarification Requests (From Repair Agent)
-#     if state.get("needs_clarification"):
-#         feedback = state.get("feedback_reason", "Could you provide more details?")
-#         return {
-#             "messages": [AIMessage(content=f"I need a bit more info: {feedback}")],
-#             "next_step": "end",
-#             "needs_clarification": False
-#         }
-
-#     # 2. Handle Errors or Security Blocks (From DB Tool/Repair Agent)
-#     if state.get("is_unsupported"):
-#         reason = state.get("feedback_reason", "")
-        
-#         # Specific check for your DB Tool's Policy Violation
-#         if "POLICY_VIOLATION" in reason.upper() or "Security" in reason:
-#             user_msg = "For security reasons, I can only analyze data. I am not allowed to perform modifications or use forbidden commands."
-#         elif "Max repair attempts" in reason:
-#             user_msg = "I've tried to resolve the technical issues with this query several times but was unsuccessful. Could you try rephrasing your question?"
-#         else:
-#             user_msg = "I'm sorry, I can't perform that specific analysis on this database with the information currently available."
-
-#         return {
-#             "messages": [AIMessage(content=user_msg)],
-#             "next_step": "end",
-#             "is_unsupported": False 
-#         }
-    
-
-#     # 3. Handle Success: Presentation Phase
-#     # Check if we have a successful result from the DB or Viz agents
-#     # FIX: Explicitly check that db_res is not None before calling .get()
-#     db_res = state.get("db_result")
-    
-#     if db_res is not None and isinstance(db_res, dict) and db_res.get("ok"):
-#         # Access data safely
-#         row_count = db_res.get("data", {}).get("row_count", 0)
-#         success_msg = f"I've analyzed the data ({row_count} records found) and prepared the results for you below."
-        
-#         return {
-#             "messages": [AIMessage(content=success_msg)],
-#             "next_step": "end" # End the technical flow and show the result
-#         }
-
-#     # 4. Standard Flow: Initial Request Handling
-#     # Use await if run_master_agent is an LLM call
-#     response = await run_master_agent(state["messages"])
-#     content = response.content.strip()
-
-#     if "[TRIGGER_SQL]" in content:
-#         next_step = "sql_generator"
-#     else:
-#         next_step = "end"
-
-#     return {
-#         "messages": [response],
-#         "next_step": next_step
-#     }
-
-
-
-# async def orchestrator_node(state: AgentState):
-#     """
-#     The Orchestrator: Controls the flow based on technical feedback 
-#     and presents final results to the user.
-#     """
-#     # 1. Handle Clarification Requests (From Repair Agent)
-#     if state.get("needs_clarification"):
-#         feedback = state.get("feedback_reason", "Could you provide more details?")
-#         return {
-#             "messages": [AIMessage(content=f"I need a bit more info: {feedback}")],
-#             "next_step": "end",
-#             "needs_clarification": False
-#         }
-
-#     # 2. Handle Errors or Security Blocks (From DB Tool/Repair Agent)
-#     if state.get("is_unsupported"):
-#         reason = state.get("feedback_reason", "")
-        
-#         # Specific check for your DB Tool's Policy Violation
-#         if "POLICY_VIOLATION" in reason.upper() or "Security" in reason:
-#             user_msg = "For security reasons, I can only analyze data. I am not allowed to perform modifications or use forbidden commands."
-#         elif "Max repair attempts" in reason:
-#             user_msg = "I've tried to resolve the technical issues with this query several times but was unsuccessful. Could you try rephrasing your question?"
-#         else:
-#             user_msg = "I'm sorry, I can't perform that specific analysis on this database with the information currently available."
-
-#         return {
-#             "messages": [AIMessage(content=user_msg)],
-#             "next_step": "end",
-#             "is_unsupported": False 
-#         }
-    
-
-#     # 3. Handle Success: Presentation Phase
-#     # Check if we have a successful result from the DB or Viz agents
-#     # FIX: Explicitly check that db_res is not None before calling .get()
-#     db_res = state.get("db_result")
-    
-#     if db_res is not None and isinstance(db_res, dict) and db_res.get("ok"):
-#         # Access data safely
-#         row_count = db_res.get("data", {}).get("row_count", 0)
-#         success_msg = f"I've analyzed the data ({row_count} records found) and prepared the results for you below."
-        
-#         return {
-#             "messages": [AIMessage(content=success_msg)],
-#             "next_step": "end" # End the technical flow and show the result
-#         }
-
-
-
-
-def sql_generator_node(state):
+def sql_generator_node(state: AgentState) -> dict:
     """
     SQL Generator Node:
     Takes the latest user question and generates SQL.
     """
-    # Get last user message
     user_message = state["messages"][-1].content
 
-    # Generate SQL from NL
     sql_query = generate_sql_from_nl(user_message)
     sql_query = (sql_query or "").strip().rstrip(";")
 
@@ -222,35 +85,17 @@ def sql_generator_node(state):
         "next_step": "db_execute"
     }
 
-# async def sql_generator_node(state: AgentState):
-#     """ SQL Generator Node:
-#       Takes the latest user question and generates SQL.
-#       """
-#     user_message = state["messages"][-1].content
-    
-#     # Ensure generate_sql_from_nl is async or wrapped
-#     sql_query = await generate_sql_from_nl(user_message) 
 
-#     return {
-#         "sql_query": sql_query,
-#         "next_step": "db_execute"
-#     }
-
-def visualization_planner_node(state: "VizPlannerState") -> dict:
+def visualization_planner_node(state: AgentState) -> dict:
     """
     Generates a visualization plan using VISUALIZATION_PLANNER_PROMPT.
     Reads query results from DB Tool output: state["db_result"].
     """
 
-    # 0) Pull core fields
     question = state.get("question", "") or ""
     sql_query = state.get("sql_query", "") or ""
 
     db_result = state.get("db_result")
-
-    # If DB tool didn't run or failed, do NOT crash.
-    # Usually the graph should route here only when ok=True,
-    # but we guard anyway (defensive programming).
 
     '''
     the return below 
@@ -268,7 +113,6 @@ def visualization_planner_node(state: "VizPlannerState") -> dict:
         } 
 
     if not db_result.get("ok"):
-        # You can choose: either return a "no viz" plan or include error summary
         err = db_result.get("error") or {}
         return {
             "viz_plan": (
@@ -279,18 +123,13 @@ def visualization_planner_node(state: "VizPlannerState") -> dict:
             )
         }
 
-    # 1) Extract columns + sample rows from db_result
     columns, sample_rows = _extract_columns_and_sample_rows(db_result, max_sample=10)
 
-    # 2) Build LLM
     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
 
-    # 3) System prompt
     system = SystemMessage(content=VISUALIZATION_PLANNER_PROMPT)
 
-    # 4) User payload (now grounded in db_result)
-    # Optional: include row_count to help decide if aggregation is needed.
     row_count = (db_result.get("data") or {}).get("row_count")
 
     user_payload = (
@@ -304,14 +143,11 @@ def visualization_planner_node(state: "VizPlannerState") -> dict:
 
     human = HumanMessage(content=user_payload)
 
-    # 5) Keep prior messages if present (system always first)
     prior_messages = state.get("messages") or []
     messages = [system] + prior_messages + [human]
 
-    # 6) Call model
     response = llm.invoke(messages)
 
-    # 7) Update state
     return {
         "messages": [response],
         "viz_plan": response.content,
@@ -319,112 +155,20 @@ def visualization_planner_node(state: "VizPlannerState") -> dict:
         "sample_rows": sample_rows,
     }
 
-#
-# async def visualization_planner_node(state: AgentState) -> dict:
-#     db_result = state.get("db_result")
-    
-#     if not db_result or not db_result.get("ok"):
-#         return {"viz_plan": "NO_VIZ - DB result missing or failed."}
 
-#     columns, sample_rows = _extract_columns_and_sample_rows(db_result, max_sample=10)
-    
-#     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-#     llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
-
-#     system = SystemMessage(content=VISUALIZATION_PLANNER_PROMPT)
-#     user_payload = f"User question: {state.get('messages')[0].content}\nColumns: {columns}\nSample: {sample_rows}"
-    
-#     # Use .ainvoke() for async execution
-#     response = await llm.ainvoke([system] + state["messages"] + [HumanMessage(content=user_payload)])
-
-#     return {
-#         "messages": [response],
-#         "viz_plan": response.content,
-#         "columns": columns,
-#         "sample_rows": sample_rows
-#     }
-
-
-
-
-
-# def visualization_planner_node(state: VizPlannerState) -> dict:
-#     """
-#     Node that generates a visualization plan using your VISUALIZATION_PLANNER_PROMPT.
-#     Returns:
-#       - messages: the AI response message (so it can be chained)
-#       - viz_plan: extracted content for easy downstream use
-#     """
-
-#     # 1) Build the LLM (GPT)
-#     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-#     llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
-
-#     # 2) System prompt (your prompt)
-#     system = SystemMessage(content=VISUALIZATION_PLANNER_PROMPT)
-
-#     # 3) Build a clear user payload from available state fields
-#     question = state.get("question", "")
-#     sql_query = state.get("sql_query", "")
-#     columns = state.get("columns", [])
-#     sample_rows = state.get("sample_rows", [])
-
-#     user_payload = (
-#         f"User question:\n{question}\n\n"
-#         f"SQL query (if available):\n{sql_query}\n\n"
-#         f"Columns (if available):\n{columns}\n\n"
-#         f"Sample rows (if available):\n{sample_rows}\n\n"
-#         "Return ONLY the visualization plan as the final answer."
-#     )
-
-#     human = HumanMessage(content=user_payload)
-
-#     # 4) If there are already messages in the state, keep them
-#     #    but always include system prompt first.
-#     prior_messages = state.get("messages") or []
-#     messages = [system] + prior_messages + [human]
-
-#     # 5) Call the model
-#     response = llm.invoke(messages)
-
-#     # 6) Return updates to the graph state
-#     return {
-#         "messages": [response],
-#         "viz_plan": response.content,
-#     }
-
-
-
-## async generation of visualization code node
-
-# async def visualization_code_generator_node(state: AgentState):
-#     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-#     llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
-
-#     prompt = VISUALIZATION_CODE_PROMPT.format(
-#         viz_plan=state.get("viz_plan", ""),
-#         df_preview=state.get("sample_rows", [])[:5]
-#     )
-
-#     # Use .ainvoke() here as well
-#     response = await llm.ainvoke([SystemMessage(content="Generate Plotly code."), HumanMessage(content=prompt)])
-
-#     return {
-#         "messages": [response],
-#         "viz_code": response.content.strip(),
-#         "next_step": "orchestrator" # Route back to present the result
-#     }
-
-def visualization_code_generator_node(state):
+def visualization_code_generator_node(state: AgentState) -> dict:
+    """
+    Generates Python Plotly code based on the visualization plan.
+    Reads from state["viz_plan"] and state["sample_rows"].
+    """
     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=model_name, temperature=0, openai_api_key=OPENAI_API_KEY)
 
     viz_plan = state.get("viz_plan", "")
     sample_rows = state.get("sample_rows", [])
     
-    # ✅ ADD IT HERE
     print("ROWS:", len(sample_rows))
-    print("COLUMNS:", state.get("columns"))  # optional
+    print("COLUMNS:", state.get("columns")) 
 
     df_preview = sample_rows[:5] if sample_rows else []
 
@@ -447,9 +191,7 @@ def visualization_code_generator_node(state):
     }
 
 
-
-# changed repair_ateempts to repair_count
-def sql_repair_node(state: AgentState):
+def sql_repair_node(state: AgentState) -> dict:
     """
     SQL Repair Node: Analyzes DB errors and decides the next step based on the Dictionary.
     """
@@ -463,7 +205,6 @@ def sql_repair_node(state: AgentState):
             "next_step": "orchestrator"
         }
 
-    # Extract info from state
     error_data = db_result.get("error", {})
     failed_sql = db_result.get("query", {}).get("sql")
     user_intent = state["messages"][-1].content 
@@ -472,7 +213,7 @@ def sql_repair_node(state: AgentState):
         intent=user_intent, 
         sql=failed_sql, 
         error_info=error_data, 
-        dictionary=DATA_DICTIONARY # Pass as dict, not formatted string
+        dictionary=DATA_DICTIONARY 
     )
     
     action = decision.get("action")
@@ -482,7 +223,6 @@ def sql_repair_node(state: AgentState):
         "feedback_reason": decision.get("reason")
     }
 
-    # Routing Logic based on your architecture
     if action == "REPAIR":
         updates.update({
             "sql_query": decision.get("repaired_sql"),
@@ -491,162 +231,24 @@ def sql_repair_node(state: AgentState):
         })
     elif action == "CLARIFY":
         updates.update({"needs_clarification": True, "next_step": "orchestrator"})
-    else: # FAIL case
+    else:
         updates.update({"is_unsupported": True, "next_step": "orchestrator"})
 
     return updates
 
-#updated Repaire for DB tools
-
-# async def sql_repair_node(state: AgentState):
-#     """
-#     Analyzes DB errors and decides whether to repair, clarify, or fail.
-#     Integrated with SupabaseDBToolAsync envelope structure.
-#     """
-#     # 1. Get the envelope from your DB Tool
-#     db_res = state.get("db_result", {})
-#     error_data = db_res.get("error") or {}
-#     failed_sql = db_res.get("query", {}).get("sql", "")
-
-#     # 2. IMMEDIATE GATE: Handle Policy Violations
-#     # If the DB Tool blocked the query (DELETE, UPDATE, etc.), don't try to repair it.
-#     if error_data.get("type") == "POLICY_VIOLATION":
-#         return {
-#             "next_step": "orchestrator",
-#             "is_unsupported": True,
-#             "feedback_reason": f"Security Policy Violation: {error_data.get('message')}"
-#         }
-
-#     # 3. Call Reasoning Engine for technical errors (SQL_ERROR, etc.)
-#     # We pass the full error_data so the LLM can see 'hint' and 'details'
-#     decision = await repair_reasoning_engine(
-#         intent=state["messages"][-1].content,
-#         sql=failed_sql,
-#         error_info=error_data,
-#         dictionary=DATA_DICTIONARY
-#     )
-
-#     # 4. Process Decision & Prepare Updates
-#     action = decision.get("action")  # Expected: "REPAIR", "CLARIFY", "FAIL"
-    
-#     # We increment the count here to ensure the DB Tool's circuit breaker works
-#     current_count = state.get("repair_count", 0)
-    
-#     updates = {
-#         "feedback_reason": decision.get("reason"),
-#         "repair_count": current_count + 1 
-#     }
-
-#     if action == "REPAIR":
-#         updates["sql_query"] = decision.get("repaired_sql")
-#         updates["next_step"] = "db_execute"  # Matches your node name
-    
-#     elif action == "CLARIFY":
-#         updates["next_step"] = "orchestrator"
-#         updates["needs_clarification"] = True
-        
-#     else:  # FAIL or unrecognized action
-#         updates["next_step"] = "orchestrator"
-#         updates["is_unsupported"] = True
-
-#     return updates
-
- 
-
-
-# def make_db_execute_node(db_tool: SupabaseDBToolAsync):
-#     """
-#     Factory so you can inject the running db_tool instance into the node.
-#     Use as a node in LangGraph: add_node("db_execute", make_db_execute_node(db_tool))
-#     """
-
-#     def db_execute_node(state: GraphState) -> GraphState:
-#         sql = state.get("sql_query", "")
-
-#         # Ensure counters exist
-#         if "repair_count" not in state:
-#             state["repair_count"] = 0
-#         if "max_repairs" not in state:
-#             state["max_repairs"] = getattr(db_tool.cfg, "max_repairs", 2)
-
-#         result = db_tool.run_sql(sql)
-#         state["db_result"] = result
-
-#         if not result.get("ok"):
-#             state["last_error"] = result.get("error") or {}
-#         else:
-#             state.pop("last_error", None)
-
-#         return state
-
-#     return db_execute_node
-
 
 import asyncio
-
-'''
-def make_db_execute_node(db_tool: SupabaseDBToolAsync):
-    """
-    Factory to inject the async db_tool into a synchronous LangGraph node.
-    """
-
-    def db_execute_node(state: AgentState) -> AgentState:
-        sql = state.get("sql_query", "")
-
-        # Ensure counters exist
-        if "repair_count" not in state:
-            state["repair_count"] = 0
-        if "max_repairs" not in state:
-            state["max_repairs"] = getattr(db_tool.cfg, "max_repairs", 2)
-        # --- SYNC BRIDGE ---
-        # Because db_tool.run_sql is async and this node is sync, 
-        # we must force it to run and wait for the result.
-        try:
-            # Try to get the existing loop (common in some environments)
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If a loop is already running, we use a future to wait
-                result = asyncio.run_coroutine_threadsafe(db_tool.run_sql(sql), loop).result()
-            else:
-                result = loop.run_until_complete(db_tool.run_sql(sql))
-        except RuntimeError:
-            # If no loop exists at all (standard for simple sync main.py), we create a new one
-            result = asyncio.run(db_tool.run_sql(sql))
-        # --------------------
-        state["db_result"] = result
-        
-        print("DB_OK:", result.get("ok"))
-        print("DB_ERROR:", result.get("error"))
-
-        if result.get("ok"):
-            data = result.get("data") or {}
-            state["columns"] = data.get("columns", [])
-            state["sample_rows"] = data.get("rows", [])[:20]
-
-
-        # Now 'result' is a real dictionary, so .get() will work!
-        if not result.get("ok"):
-            state["last_error"] = result.get("error") or {}
-        else:
-            state.pop("last_error", None)
-
-        return state
-
-    return db_execute_node
-'''
 
 def make_db_execute_node(db_tool: SupabaseDBToolAsync):
 
     async def db_execute_node(state: AgentState) -> AgentState:
         sql = state.get("sql_query", "") or ""
 
-        # Ensure counters exist
         if "repair_count" not in state:
             state["repair_count"] = 0
         if "max_repairs" not in state:
             state["max_repairs"] = getattr(db_tool.cfg, "max_repairs", 2)
 
-        # ✅ Run the async DB call properly (NO sync bridge)
         result = await db_tool.run_sql(sql)
 
         state["db_result"] = result
@@ -654,13 +256,11 @@ def make_db_execute_node(db_tool: SupabaseDBToolAsync):
         print("DB_OK:", result.get("ok"))
         print("DB_ERROR:", result.get("error"))
 
-        # ✅ Hydrate UI fields
         if result.get("ok"):
             data = result.get("data") or {}
             state["columns"] = data.get("columns", [])
             state["sample_rows"] = (data.get("rows") or [])[:20]
 
-        # last_error helper
         if not result.get("ok"):
             state["last_error"] = result.get("error") or {}
         else:

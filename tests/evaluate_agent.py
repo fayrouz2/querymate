@@ -14,19 +14,15 @@ from datetime import datetime
 from typing import List, Dict, Any, Tuple, Optional
 from dotenv import load_dotenv
 
-# Get project root (querymate directory)
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-# Load .env from project root
 load_dotenv(PROJECT_ROOT / '.env')
 
-# Import from src package
 from src.agent.sql_generator_agent import generate_sql_from_nl
 from src.database.db_tool import SupabaseDBToolAsync, DBToolConfig
 from src.config import OPENAI_API_KEY
 
-# Import local test modules
 from tests.metrics_calculator import MetricsCalculator
 from tests.llm_judge import LLMJudgeEvaluator
 
@@ -42,7 +38,6 @@ class AgentEvaluator:
             ground_truth_path: Path to ground truth CSV (default: tests/data/ground_truth.csv)
             max_attempts: Maximum retry attempts per question
         """
-        # Default to tests/data/ground_truth.csv
         if ground_truth_path is None:
             ground_truth_path = Path(__file__).parent / 'data' / 'ground_truth.csv'
 
@@ -58,10 +53,9 @@ class AgentEvaluator:
         """Setup PostgreSQL database connection"""
         print("Setting up database connection...")
 
-        # Load database config from querymate
         db_config = DBToolConfig(
             database_url="postgresql://postgres.mifszuwhtketjxkqgdji:Northwind2026%21@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require",
-            max_repairs=0  # No repairs during evaluation
+            max_repairs=0  
         )
 
         self.db_tool = SupabaseDBToolAsync(db_config)
@@ -93,16 +87,12 @@ class AgentEvaluator:
             (result, error_message)
         """
         try:
-            # Use the database tool to execute query
             result = await self.db_tool.run_sql(sql)
 
-            # Check if execution was successful
             if result.get("ok"):
-                # Extract rows from the data field
                 rows = result["data"]["rows"]
                 return rows, None
             else:
-                # Extract error message
                 error_info = result.get("error", {})
                 error_msg = error_info.get("message", "Unknown error")
                 return None, error_msg
@@ -144,11 +134,9 @@ class AgentEvaluator:
             "sql_explanation": None
         }
 
-        # Try up to max_attempts
         for attempt_num in range(1, self.max_attempts + 1):
             print(f"  Attempt {attempt_num}/{self.max_attempts}...")
 
-            # Step 1: Generate SQL (track time)
             start_time = time.time()
             try:
                 agent_sql = generate_sql_from_nl(q_text)
@@ -171,7 +159,6 @@ class AgentEvaluator:
 
             print(f"    Generated SQL in {gen_time:.2f}s")
 
-            # Step 2: Execute SQL (track time)
             start_time = time.time()
             agent_result, error = await self.execute_sql(agent_sql)
             exec_time = time.time() - start_time
@@ -183,7 +170,6 @@ class AgentEvaluator:
                 status = "SUCCESS"
                 print(f"    ✓ Executed in {exec_time:.2f}s")
 
-            # Record attempt
             evaluation["attempts"].append({
                 "attempt_number": attempt_num,
                 "sql": agent_sql,
@@ -193,29 +179,24 @@ class AgentEvaluator:
                 "execution_time": exec_time
             })
 
-            # If successful, break
             if not error:
                 evaluation["sql_execution_success"] = True
                 break
 
-        # Calculate metrics
         evaluation["total_attempts"] = len(evaluation["attempts"])
         evaluation["total_time"] = sum(
             a["generation_time"] + a["execution_time"]
             for a in evaluation["attempts"]
         )
 
-        # Check if self-corrected
         if evaluation["sql_execution_success"] and evaluation["total_attempts"] > 1:
             evaluation["self_corrected"] = True
 
-        # Evaluate result accuracy (if execution succeeded)
         if evaluation["sql_execution_success"]:
             last_attempt = evaluation["attempts"][-1]
             agent_sql = last_attempt["sql"]
             agent_result = last_attempt["result"]
 
-            # Use LLM as judge to compare SQL and results
             print(f"    Evaluating with LLM judge...")
             llm_eval = self.llm_judge.evaluate_complete(
                 question=q_text,
@@ -225,7 +206,6 @@ class AgentEvaluator:
                 agent_result=agent_result
             )
 
-            # Extract evaluations
             sql_eval = llm_eval["sql_evaluation"]
             result_eval = llm_eval["result_evaluation"]
 
@@ -262,15 +242,12 @@ class AgentEvaluator:
         print(f"Evaluation Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print()
 
-        # Load ground truth
         print("Loading ground truth...")
         questions = self.load_ground_truth()
         print(f"✓ Loaded {len(questions)} questions")
 
-        # Setup database
         await self.setup_database()
 
-        # Evaluate each question
         print(f"\nEvaluating {len(questions)} questions...")
         print("="*70)
 
@@ -285,11 +262,9 @@ class AgentEvaluator:
                 import traceback
                 traceback.print_exc()
 
-            # Add small delay to avoid rate limits
             if i < len(questions):
                 time.sleep(0.1)
 
-        # Close database
         await self.close_database()
 
         print("\n" + "="*70)
@@ -301,7 +276,6 @@ class AgentEvaluator:
         if not self.results:
             return
 
-        # Default to tests/results/
         if filename is None:
             output_dir = Path(__file__).parent / 'results'
             output_dir.mkdir(exist_ok=True)
@@ -323,7 +297,6 @@ class AgentEvaluator:
             writer.writeheader()
 
             for r in self.results:
-                # Get final attempt
                 final_attempt = r["attempts"][-1] if r["attempts"] else {}
 
                 row = {
@@ -357,7 +330,6 @@ class AgentEvaluator:
 
     def save_summary(self, metrics: Dict[str, Any], filename: Optional[str] = None):
         """Save metrics summary to JSON"""
-        # Default to tests/results/
         if filename is None:
             output_dir = Path(__file__).parent / 'results'
             output_dir.mkdir(exist_ok=True)
@@ -377,7 +349,6 @@ class AgentEvaluator:
         print(f"\nTotal Questions: {metrics['total_questions']}")
         print(f"Evaluation Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-        # Metric 1: SQL Execution Success
         exec_metrics = metrics['sql_execution_success']
         print(f"\n--- SQL EXECUTION SUCCESS ---")
         print(f"Success Rate: {exec_metrics['success_rate']}% ({exec_metrics['successful_queries']}/{metrics['total_questions']})")
@@ -388,7 +359,6 @@ class AgentEvaluator:
             for error_type, count in exec_metrics['error_breakdown'].items():
                 print(f"  - {error_type}: {count}")
 
-        # Metric 2: Result Accuracy
         acc_metrics = metrics['result_accuracy']
         print(f"\n--- RESULT ACCURACY ---")
         print(f"Result Accuracy: {acc_metrics['accuracy']}% ({acc_metrics['correct_queries']}/{metrics['total_questions']})")
@@ -405,14 +375,12 @@ class AgentEvaluator:
         for method, count in acc_metrics['comparison_methods'].items():
             print(f"  {method}: {count}")
 
-        # Metric 3: Self-Correction
         self_corr = metrics['self_correction']
         print(f"\n--- SELF-CORRECTION CAPABILITY ---")
         print(f"First-Attempt Success: {self_corr['first_attempt_success_rate']}% ({self_corr['first_attempt_successes']}/{metrics['total_questions']})")
         print(f"Self-Correction Success: {self_corr['self_correction_success_rate']}% ({self_corr['self_corrected']}/{self_corr['failed_first_attempts']})")
         print(f"Average Attempts: {self_corr['average_attempts']}")
 
-        # Metric 4: Time Performance
         time_perf = metrics['time_performance']
         print(f"\n--- QUERY EXECUTION TIME ---")
         print(f"Average Total Time: {time_perf['average_time']}s")
@@ -421,18 +389,15 @@ class AgentEvaluator:
         print(f"P99: {time_perf['p99_time']}s")
         print(f"Range: {time_perf['min_time']}s - {time_perf['max_time']}s")
 
-        # By Difficulty
         print(f"\n--- BY DIFFICULTY LEVEL ---")
         for difficulty, stats in metrics['by_difficulty'].items():
             print(f"{difficulty} ({stats['total']}): {stats['accuracy']}% accuracy")
 
-        # By Category
         print(f"\n--- BY BUSINESS CATEGORY ---")
         sorted_categories = sorted(metrics['by_category'].items(), key=lambda x: x[1]['accuracy'], reverse=True)
         for category, stats in sorted_categories[:10]:  # Top 10
             print(f"{category}: {stats['accuracy']}% ({stats['correct']}/{stats['total']})")
 
-        # Error Patterns
         error_patterns = metrics['error_patterns']
         if error_patterns['total_failures'] > 0:
             print(f"\n--- ERROR PATTERNS ---")
@@ -456,18 +421,14 @@ async def main():
     try:
         evaluator = AgentEvaluator(max_attempts=3)
 
-        # Run evaluation
         await evaluator.run_evaluation()
 
-        # Calculate metrics
         print("\nCalculating metrics...")
         calculator = MetricsCalculator(evaluator.results)
         metrics = calculator.calculate_all_metrics()
 
-        # Generate report
         evaluator.generate_report(metrics)
 
-        # Save results
         evaluator.save_detailed_results()
         evaluator.save_summary(metrics)
 
