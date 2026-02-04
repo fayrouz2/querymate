@@ -7,8 +7,14 @@ API_URL = "https://querymate-production.up.railway.app"
 
 st.set_page_config(page_title="QueryMate", layout="wide")
 
-st.title("QueryMate")
-st.caption("Ask questions and get answers directly from the database")
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    st.image("assets/logo.png", use_column_width=True)
+
+st.markdown(
+    "<p style='text-align: center; color: grey;'>Ask questions and get answers directly from your database</p>",
+    unsafe_allow_html=True
+)
 
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -36,8 +42,8 @@ if user_input:
             with st.spinner("Thinking..."):
                 try:
                     response = requests.post(
-                                # f"{API_URL}/chat",
-                                "http://127.0.0.1:8000/chat",
+                                f"{API_URL}/chat",
+                                # "http://127.0.0.1:8000/chat",
                                 json={"message": user_input, "thread_id": "session_001"}, 
                                 timeout=60
                             )
