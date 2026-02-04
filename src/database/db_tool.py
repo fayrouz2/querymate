@@ -91,13 +91,7 @@ def validate_sql_policy(sql: str, allow_multi_statement: bool) -> Tuple[bool, Op
 
 
 def enforce_limit_wrapper(sql: str, max_rows: int) -> str:
-    # Robust MVP approach: wrap as subquery and apply LIMIT outside.
     return f"SELECT * FROM ({sql}) AS _q LIMIT {int(max_rows)}"
-
-
-# =========================
-# Async DB Tool (pool)
-# =========================
 
 class SupabaseDBToolAsync:
     def __init__(self, cfg: DBToolConfig):
@@ -135,7 +129,7 @@ class SupabaseDBToolAsync:
 
         final_sql = enforce_limit_wrapper(sql, self.cfg.max_rows) if self.cfg.enforce_limit else sql
 
-        if not self._pool: # We are trying to run a SQL query, but the DB connection was never initialized.
+        if not self._pool:
             return err_envelope(
                 sql=final_sql,
                 error_type="INTERNAL_ERROR",
@@ -145,20 +139,17 @@ class SupabaseDBToolAsync:
 
         try:
             async with self._pool.acquire() as conn:
-                # Server-side timeouts (per-transaction/local)
                 await conn.execute(f"SET LOCAL statement_timeout = {int(self.cfg.statement_timeout_ms)};")
                 await conn.execute(f"SET LOCAL lock_timeout = {int(self.cfg.lock_timeout_ms)};")
                 await conn.execute(f"SET LOCAL idle_in_transaction_session_timeout = {int(self.cfg.idle_in_tx_timeout_ms)};")
 
-                # 1) EXPLAIN (FORMAT JSON) — validates query without running it fully
-                explain_rows = await conn.fetch(f"EXPLAIN (FORMAT JSON) {final_sql}") # raises a PostgresError immediately, go to except
+                explain_rows = await conn.fetch(f"EXPLAIN (FORMAT JSON) {final_sql}")
                 explain_json = explain_rows[0]["QUERY PLAN"] if explain_rows else None
 
-                # 2) Execute only if EXPLAIN passes
                 data_rows = await conn.fetch(final_sql)
 
-                rows = [dict(r) for r in data_rows] # rows as dictionaries
-                columns = list(rows[0].keys()) if rows else [] # explicit column names
+                rows = [dict(r) for r in data_rows] 
+                columns = list(rows[0].keys()) if rows else []
                 row_count = len(rows)
 
                 ms = int((time.time() - t0) * 1000)
