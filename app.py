@@ -69,7 +69,7 @@ if user_input:
 
                 # Execute visualization code safely
                 if viz_code and df is not None:
-                    st.code(viz_code, language="python")  # optional debug
+                    # st.code(viz_code, language="python")  # optional debug
                     try:
                         local_vars = {"df": df, "px": px}
                         exec(viz_code, {"__builtins__": {}}, local_vars)
@@ -99,7 +99,7 @@ if st.session_state.last_result:
     result = st.session_state.last_result
 
     st.subheader("Query Results")
-    st.write(result["answer"])
+    # st.write(result["answer"])
 
     with st.expander("Show SQL Query"):
         if result["sql"]:

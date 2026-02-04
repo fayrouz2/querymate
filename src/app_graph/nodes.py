@@ -78,7 +78,7 @@ def orchestrator_node(state: AgentState):
         next_step = "end"
 
     return {
-        "messages": [response],
+        # "messages": [response],
         "next_step": next_step
     }
 
