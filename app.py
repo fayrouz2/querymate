@@ -47,8 +47,8 @@ if user_input:
                 # Call FastAPI backend
                 try:
                     response = requests.post(
-                                #  f"{API_URL}/chat",
-                                "http://127.0.0.1:8000/chat",
+                                 f"{API_URL}/chat",
+                                # "http://127.0.0.1:8000/chat",
                                 json={"message": user_input, "thread_id": "session_001"}, 
                                 timeout=60
                             )
