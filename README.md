@@ -48,7 +48,7 @@ Unlike traditional Text-to-SQL systems, QueryMate uses a self-healing multi-agen
 
 
 
-## Evalution Metric
+## Evaluation 
 Evaluation & Benchmarking
 QueryMate was evaluated using a Golden Dataset of 85 natural language questions spanning simple filters to complex multi-join aggregations.
 The +47.1% Repair Agent Improvement demonstrates the system's ability to autonomously debug and iterate on SQL syntax until execution success is achieved.
