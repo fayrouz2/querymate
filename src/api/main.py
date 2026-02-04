@@ -13,11 +13,15 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For production, replace "*" with your frontend URL
+    # 1. allow_origins is where your Frontend URL goes
+    allow_origins=["https://querymate-frontend-production.up.railway.app"], 
     allow_credentials=True,
-    allow_methods=["*"],
+    # 2. allow_methods should be the HTTP actions (usually ["*"] is fine)
+    allow_methods=["*"], 
+    # 3. allow_headers should be the types of headers (usually ["*"] is fine)
     allow_headers=["*"],
 )
+
 
 # ---------- Request Model ----------
 class ChatRequest(BaseModel):
