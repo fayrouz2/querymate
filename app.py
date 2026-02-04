@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 import plotly.express as px
 
-API_URL = "https://your-backend-service.up.railway.app"
+API_URL = "https://querymate-production.up.railway.app"
 
 st.set_page_config(page_title="QueryMate", layout="wide")
 
